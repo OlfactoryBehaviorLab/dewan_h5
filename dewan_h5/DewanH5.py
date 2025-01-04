@@ -19,6 +19,19 @@ class DewanH5:
         self.total_trials = 0
         self.date = None
         self.time = None
+        self.sniffing = None
+        self.licking = None
+        self.trial_parameters = None
+
+        self._open()
+
+    def _open(self):
+        if not self.file_path:
+            # Open file selector
+            pass
+        else:
+            # Open H5 file
+            pass
 
     def __str__(self):
         return (f'Dewan Lab H5 file:\n'
