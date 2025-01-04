@@ -1,0 +1,27 @@
+[build-system]
+requires = ["setuptools"]
+build-backend = "setuptools.build_meta" 
+
+
+[project]
+name = "dewan_h5"
+version = "0.0.1"
+description = "Python package to load and parse H5 files in the Dewan Lab."
+readme = "README.md"
+requires-python = ">=3.12"
+license = { file = "LICENSE.txt" }
+authors = [{ name = "Austin Pauley", email = "pauley@psy.fsu.edu" }]
+
+dependencies = ["h5py"]
+
+[project.urls]
+"Homepage" = "https://github.com/olfactorybehaviorlab/dewan_h5"
+
+
+# The following would provide a command line executable called `sample`
+# which executes the function `main` from this package when invoked.
+#[project.scripts]
+#sample = "sample:main"
+
+[tool.setuptools]
+packages=['dewan_h5']
