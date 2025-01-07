@@ -37,8 +37,16 @@ class DewanH5:
             self._file = None
 
 
-    def _parse(self):
-        pass
+    def _parse_trial_matrix(self):
+        trial_matrix = self._file['Trials']
+        trial_matrix_attrs = trial_matrix.attrs
+        table_col = [trial_matrix_attrs[key].astype(str) for key in trial_matrix_attrs.keys() if 'NAME' in key]
+        data_dict = {}
+
+        for col in table_col:
+            data_dict[col] = trial_matrix[col]
+
+        self.trial_parameters = pd.DataFrame(data_dict)
 
     def __enter__(self):
         if not self.file_path:
@@ -46,7 +54,7 @@ class DewanH5:
             #open file browser
 
         self._open()
-        self._parse()
+        self._parse_trial_matrix()
 
         return self
 
