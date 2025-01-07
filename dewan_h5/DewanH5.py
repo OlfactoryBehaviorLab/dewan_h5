@@ -19,15 +19,16 @@ class DewanH5:
         self.file_path = file_path
 
         # Parameters from H5 File
-        self.mouse_number = 0
-        self.total_trials = 0
+        self.mouse_number: int = 0
+        self.total_trials: int = 0
         self.date = None
         self.time = None
+        self.rig: str = ''
+        self.trial_parameters: Union[pd.DataFrame, None] = None
         self.sniffing = None
         self.licking = None
-        self.trial_parameters: Union[pd.DataFrame, None] = None
 
-        self._file = None
+        self._file: Union[h5py.File, None] = None
 
 
     def _open(self):
@@ -36,6 +37,7 @@ class DewanH5:
         except FileNotFoundError as e:
             print(f'Error! {self.file_path} not found!')
             self._file = None
+            self.__exit__(None, None, None)
 
 
     def _parse_trial_matrix(self):
@@ -47,7 +49,21 @@ class DewanH5:
         for col in table_col:
             data_dict[col] = trial_matrix[col]
 
-        self.trial_parameters = pd.DataFrame(data_dict)
+        trial_parameters = pd.DataFrame(data_dict)
+        self.trial_parameters = trial_parameters.map(lambda x: x.decode() if isinstance(x, bytes) else x)
+        # Convert all the bytes to strings
+
+
+    def _set_experiment_vals(self):
+        self.rig = str(self.trial_parameters['rig'].values[0])
+        self.mouse_number = self.trial_parameters['mouse'].values[0]
+        self.total_trials = self.trial_parameters.shape[0]
+
+    def _set_time(self):
+        file_time = self._file.attrs['start_date']
+        self.date, self.time = DewanH5.convert_date(file_time)
+
+
 
     def __enter__(self):
         if not self.file_path:
@@ -56,8 +72,11 @@ class DewanH5:
 
         self._open()
         self._parse_trial_matrix()
+        self._set_experiment_vals()
+        self._set_time()
 
         return self
+
 
     def __exit__(self, exc_type, exc_val, exc_tb):
         if exc_type is None and exc_val is None and exc_tb is None:
