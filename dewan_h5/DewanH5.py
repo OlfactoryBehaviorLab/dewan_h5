@@ -5,6 +5,7 @@ Date: 01-04-2025
 """
 
 import h5py
+import traceback
 from pathlib import Path
 from typing import Union
 
@@ -23,15 +24,33 @@ class DewanH5:
         self.licking = None
         self.trial_parameters = None
 
-        self._open()
+        self._file = None
 
-    def _open(self):
+        self._create()
+
+    def _create(self):
         if not self.file_path:
             # Open file selector
             pass
         else:
-            # Open H5 file
+            self._open()
+
+    def _open(self):
+        try:
+            self._file = h5py.File(self.file_path, 'r')
+        except FileNotFoundError as e:
+            print(f'Error! {self.file_path} not found!')
+            self._file = None
+
+    def __enter__(self):
+        pass
+
+    def __exit__(self, exc_type, exc_val, exc_tb):
+        if exc_type is None and exc_val is None and exc_tb is None:
+            return False
+        else:
             pass
+
 
     def __str__(self):
         return (f'Dewan Lab H5 file:\n'
