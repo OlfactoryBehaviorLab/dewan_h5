@@ -3,9 +3,9 @@ Dewan Lab H5 Parsing Library
 Author: Austin Pauley (pauley@psy.fsu.edu)
 Date: 01-04-2025
 """
+import traceback
 
 import h5py
-import traceback
 from pathlib import Path
 from typing import Union
 
@@ -26,14 +26,6 @@ class DewanH5:
 
         self._file = None
 
-        self._create()
-
-    def _create(self):
-        if not self.file_path:
-            # Open file selector
-            pass
-        else:
-            self._open()
 
     def _open(self):
         try:
@@ -42,14 +34,28 @@ class DewanH5:
             print(f'Error! {self.file_path} not found!')
             self._file = None
 
-    def __enter__(self):
+
+    def _parse(self):
         pass
+
+    def __enter__(self):
+        if not self.file_path:
+            print('No file path passed, opening file browser!')
+            #open file browser
+
+        self._open()
+        self._parse()
+
+        return self
 
     def __exit__(self, exc_type, exc_val, exc_tb):
         if exc_type is None and exc_val is None and exc_tb is None:
+            if self._file:
+                self._file.close()
             return False
         else:
-            pass
+            if self._file:
+                self._file.close()
 
 
     def __str__(self):
@@ -57,4 +63,7 @@ class DewanH5:
                 f'Mouse: {self.mouse_number}\n'
                 f'Experiment Date: {self.date}\n'
                 f'Experiment Time: {self.time}\n')
+
+    def __repr__(self):
+        return type(self)
 
