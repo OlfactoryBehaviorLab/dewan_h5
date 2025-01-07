@@ -12,7 +12,10 @@ requires-python = ">=3.12"
 license = { file = "LICENSE.txt" }
 authors = [{ name = "Austin Pauley", email = "pauley@psy.fsu.edu" }]
 
-dependencies = ["h5py"]
+dependencies = [
+"h5py",
+"pandas"
+]
 
 [project.urls]
 "Homepage" = "https://github.com/olfactorybehaviorlab/dewan_h5"
