@@ -6,6 +6,8 @@ Date: 01-04-2025
 import traceback
 
 import h5py
+import pandas as pd
+
 from pathlib import Path
 from typing import Union
 
@@ -22,7 +24,7 @@ class DewanH5:
         self.time = None
         self.sniffing = None
         self.licking = None
-        self.trial_parameters = None
+        self.trial_parameters: Union[pd.DataFrame, None] = None
 
         self._file = None
 
