@@ -8,6 +8,7 @@ import traceback
 import h5py
 import pandas as pd
 
+from datetime import datetime
 from pathlib import Path
 from typing import Union
 
@@ -67,13 +68,21 @@ class DewanH5:
             if self._file:
                 self._file.close()
 
-
     def __str__(self):
-        return (f'Dewan Lab H5 file:\n'
+        return (f'Dewan Lab H5 file: {self.file_path.name}\n'
                 f'Mouse: {self.mouse_number}\n'
                 f'Experiment Date: {self.date}\n'
-                f'Experiment Time: {self.time}\n')
+                f'Experiment Time: {self.time}\n'
+                f'Rig: {self.rig}\n'
+                f'Total Trials: {self.total_trials}\n')
 
     def __repr__(self):
         return type(self)
+
+    @staticmethod
+    def convert_date(time):
+        unix_time_datetime = datetime.fromtimestamp(time)
+        date = unix_time_datetime.strftime('%a %b %d, %Y')
+        time = unix_time_datetime.strftime('%I:%M%p')
+        return date, time
 
