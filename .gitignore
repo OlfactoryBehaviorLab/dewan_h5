@@ -171,3 +171,8 @@ cython_debug/
 .pypirc
 data/
 .idea/
+
+GoodSniffData/
+**/test.py
+
+uv.lock
