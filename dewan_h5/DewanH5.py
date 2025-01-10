@@ -18,28 +18,26 @@ class DewanH5:
 
         self.file_path = file_path
         self.suppress_errors = suppress_errors
+        self._file: Union[h5py.File, None] = None
 
-        # Parameters from H5 File
-        self.mouse_number: int = 0
-        self.total_trials: int = 0
+        # General parameters from H5 File
         self.date = None
         self.time = None
+        self.mouse_number: int = 0
         self.rig: str = ''
+
+        # Quantitative Values
+        self.total_trials: int = 0
+        self.total_water_ul: int = 0
+        self.total_water_ul: int = 0
+        self.go_performance: int = 0
+        self.nogo_performance: int = 0
+        self.total_performance: int = 0
+
+        # Data Containers
         self.trial_parameters: Union[pd.DataFrame, None] = None
         self.sniffing = None
         self.licking = None
-
-        self._file: Union[h5py.File, None] = None
-
-
-    def _open(self):
-        try:
-            self._file = h5py.File(self.file_path, 'r')
-        except FileNotFoundError as e:
-            print(f'Error! {self.file_path} not found!')
-            print(traceback.format_exc())
-            self._file = None
-            self.__exit__(None, None, None)
 
 
     def _parse_trial_matrix(self):
@@ -61,10 +59,20 @@ class DewanH5:
         self.mouse_number = self.trial_parameters['mouse'].values[0]
         self.total_trials = self.trial_parameters.shape[0]
 
+
     def _set_time(self):
         file_time = self._file.attrs['start_date']
         self.date, self.time = DewanH5.convert_date(file_time)
 
+
+    def _open(self):
+        try:
+            self._file = h5py.File(self.file_path, 'r')
+        except FileNotFoundError as e:
+            print(f'Error! {self.file_path} not found!')
+            print(traceback.format_exc())
+            self._file = None
+            self.__exit__(None, None, None)
 
 
     def __enter__(self):
@@ -99,8 +107,10 @@ class DewanH5:
                 f'Rig: {self.rig}\n'
                 f'Total Trials: {self.total_trials}\n')
 
+
     def __repr__(self):
         return type(self)
+
 
     @staticmethod
     def convert_date(time):
