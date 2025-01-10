@@ -14,9 +14,10 @@ from typing import Union
 
 
 class DewanH5:
-    def __init__(self, file_path:  Union[None, Path] = None):
+    def __init__(self, file_path:  Union[None, Path] = None, suppress_errors=False):
 
         self.file_path = file_path
+        self.suppress_errors = suppress_errors
 
         # Parameters from H5 File
         self.mouse_number: int = 0
@@ -36,6 +37,7 @@ class DewanH5:
             self._file = h5py.File(self.file_path, 'r')
         except FileNotFoundError as e:
             print(f'Error! {self.file_path} not found!')
+            print(traceback.format_exc())
             self._file = None
             self.__exit__(None, None, None)
 
@@ -79,13 +81,15 @@ class DewanH5:
 
 
     def __exit__(self, exc_type, exc_val, exc_tb):
-        if exc_type is None and exc_val is None and exc_tb is None:
-            if self._file:
-                self._file.close()
-            return False
-        else:
-            if self._file:
-                self._file.close()
+        if self._file:
+            self._file.close()
+
+        if exc_type is not None:
+            if self.suppress_errors:
+                return True
+            else:
+                return False
+
 
     def __str__(self):
         return (f'Dewan Lab H5 file: {self.file_path.name}\n'
