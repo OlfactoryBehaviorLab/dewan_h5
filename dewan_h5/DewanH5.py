@@ -4,6 +4,7 @@ Author: Austin Pauley (pauley@psy.fsu.edu)
 Date: 01-04-2025
 """
 import traceback
+import warnings
 
 import h5py
 import pandas as pd
@@ -75,16 +76,27 @@ class DewanH5:
             self.__exit__(None, None, None)
 
 
+    def debug_enter(self):
+        warnings.warn("Using DewanH5 outside of a context manager is NOT recommended! "
+                      "You must manually close the file reference using the close() method before deleting this instance!")
+
+        return self.__enter__()
+
+
+
+    def close(self):
+        self.__exit__(None, None, None)
+
     def __enter__(self):
         if not self.file_path:
             print('No file path passed, opening file browser!')
             #open file browser
 
         self._open()
-        self._parse_trial_matrix()
-        self._set_experiment_vals()
-        self._set_time()
-
+        # self._parse_trial_matrix()
+        # self._set_experiment_vals()
+        # self._set_time()
+        # self._parse_packets()
         return self
 
 
