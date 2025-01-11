@@ -56,6 +56,23 @@ class DewanH5:
         self.licking = None
 
 
+
+    def _parse_packets(self):
+        experiment_data = {}
+
+        trial_names = list(self._file.keys())[:-1]
+
+        for trial_name in trial_names:
+            trial_data = {}
+            trial_packet = self._file[trial_name]
+
+            for data_type in trial_packet.keys():
+                trial_data[data_type] = trial_packet[data_type][()]
+
+            experiment_data[trial_name] = trial_data
+
+
+
     def _parse_trial_matrix(self):
         trial_matrix = self._file['Trials']
         trial_matrix_attrs = trial_matrix.attrs
