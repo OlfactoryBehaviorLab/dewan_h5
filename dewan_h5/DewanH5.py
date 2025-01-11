@@ -40,7 +40,7 @@ class DewanH5:
         self.date = None
         self.time = None
         self.mouse_number: int = 0
-        self.rig: str = ''
+        self.rig: str = 'None Specified'
 
         # Quantitative Values
         self.total_trials: int = 0
@@ -136,7 +136,7 @@ class DewanH5:
 
 
     def __repr__(self):
-        return type(self)
+        return str(f'Type: type(self)')
 
 
     @staticmethod
