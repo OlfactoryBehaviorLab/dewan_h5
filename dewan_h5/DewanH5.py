@@ -45,7 +45,6 @@ class DewanH5:
         # Quantitative Values
         self.total_trials: int = 0
         self.total_water_ul: int = 0
-        self.total_water_ul: int = 0
         self.go_performance: int = 0
         self.nogo_performance: int = 0
         self.total_performance: int = 0
@@ -66,7 +65,6 @@ class DewanH5:
             lick_1_timestamps = []
             lick_2_timestamps = []
             trial_packet = self._file[trial_names[index]]
-
 
             sniff_events = trial_packet['Events']
             raw_sniff_samples = trial_packet['sniff']
@@ -146,10 +144,10 @@ class DewanH5:
             #open file browser
 
         self._open()
-        # self._parse_trial_matrix()
-        # self._set_experiment_vals()
-        # self._set_time()
-        # self._parse_packets()
+        self._parse_trial_matrix()
+        self._set_experiment_vals()
+        self._set_time()
+        self._parse_packets()
         return self
 
 
