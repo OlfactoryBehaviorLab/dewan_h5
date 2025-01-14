@@ -52,25 +52,46 @@ class DewanH5:
 
         # Data Containers
         self.trial_parameters: Union[pd.DataFrame, None] = None
-        self.sniffing = None
-        self.licking = None
-
+        self.sniff: dict[int, pd.Series] = {}
+        self.lick1: dict[int, list] = {}
+        self.lick2: dict[int, list] = {}
 
 
     def _parse_packets(self):
-        experiment_data = {}
-
         trial_names = list(self._file.keys())[:-1]
 
-        for trial_name in trial_names:
-            trial_data = {}
-            trial_packet = self._file[trial_name]
+        for index in range(len(trial_names)):
+            timestamps = []
+            sniff_samples = []
+            lick_1_timestamps = []
+            lick_2_timestamps = []
+            trial_packet = self._file[trial_names[index]]
 
-            for data_type in trial_packet.keys():
-                trial_data[data_type] = trial_packet[data_type][()]
 
-            experiment_data[trial_name] = trial_data
+            sniff_events = trial_packet['Events']
+            raw_sniff_samples = trial_packet['sniff']
+            raw_lick_1_timestamps = trial_packet['lick1']
+            raw_lick_2_timestamps = trial_packet['lick2']
 
+            fv_on_time = self.trial_parameters.iloc[index]['fvOnTime'].astype(int)
+
+            for timestamp, num_samples in sniff_events:
+                new_ts = list(range(timestamp, timestamp + num_samples))
+                timestamps.extend(new_ts)
+
+            # Equivalent of np.hstack() should be a bit better than nested for loops
+            _ = [sniff_samples.extend(sample_bin) for sample_bin in raw_sniff_samples]
+            _ = [lick_1_timestamps.extend(lick_bin) for lick_bin in raw_lick_1_timestamps]
+            _ = [lick_2_timestamps.extend(lick_bin) for lick_bin in raw_lick_2_timestamps]
+
+            fv_offset_ts = [int(ts - fv_on_time) for ts in timestamps]
+            lick_1_timestamps = [int(ts - fv_on_time) for ts in lick_1_timestamps]
+            lick_2_timestamps = [int(ts - fv_on_time) for ts in lick_2_timestamps]
+            sniff_data = pd.Series(sniff_samples, index=fv_offset_ts, name='sniff')
+
+            self.sniff[index] = sniff_data
+            self.lick1[index] = lick_1_timestamps
+            self.lick2[index] = lick_2_timestamps
 
 
     def _parse_trial_matrix(self):
