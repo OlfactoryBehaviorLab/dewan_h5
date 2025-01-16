@@ -118,6 +118,10 @@ class DewanH5:
             self.__exit__(None, None, None)
 
 
+    def export(self, path: Union[None, Path] = None, file_name: Union[None, str] = None) -> None:
+        
+        pass
+
     def debug_enter(self):
         warnings.warn("Using DewanH5 outside of a context manager is NOT recommended! "
                       "You must manually close the file reference using the close() method before deleting this instance!")
@@ -127,6 +131,7 @@ class DewanH5:
 
     def close(self):
         self.__exit__(None, None, None)
+
 
     def __enter__(self):
         if not self.file_path:
