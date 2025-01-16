@@ -2,13 +2,14 @@
 
 This library serves to load, parse, and serve the contents of H5 files from the lab's Arduino- and Voyeur-based behavior setups.
 
-## Recorded Parameters:
-___
+## Pertinent Trial Parameters:
+#### Matrix located at `/Trials` that contains parameters for each trial
+##### Each entry in the following format `Common Name [column_name, data type]`
 
-- `Trial Type (int)`: One value per trial which encodes the trial type
+- `Trial Type (int)`: Value which encodes the trial type
   - **1**: Go (no licking)
   - **2**: NoGo (licking)
-- `Response (int)`: One value per trial that represents the response of the animal
+- `Response (int)`: Value that represents the response of the animal
   - **1**: Correct "Go" Response >>> The stimulus was a 'Go' stimulus and the animal correctly withheld licking
   - **2**: Correct "NoGo" Response >>> The stimulus was a 'NoGo' stimulus and the animal correctly licked 
   - **3**: False Alarm / Incorrect "NoGo" Response >>> The stimulus was a "NoGo" stimulus and the animal incorrectly withheld licking
@@ -20,6 +21,10 @@ ___
 > \- A response of `2` indicates **CHEATING**  
  \- A response of `3` indicates **NO CHEATING**
 
+- `Odor Name ["Odor", str]`: Name of odorant presented during the trial
+- `Odor Concentration ["Odorconc", str]`: Concentration of odorant presented during the trial
+- `Odor Vial Number ["Odorvial", int]`: Olfactometer vial used to deliver the odorant during the trial
+- 
 ### H5 File Structure
 ___
 - **Values**:
