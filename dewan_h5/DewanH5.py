@@ -17,17 +17,21 @@ from typing import Union
 class DewanH5:
 
     def __init__(self, file_path:  Union[None, Path] = None, suppress_errors=False):
-
-
         self.file_path = file_path
+        self.file_name = file_path.name
         self.suppress_errors = suppress_errors
         self._file: Union[h5py.File, None] = None
 
         # General parameters from H5 File
         self.date = None
         self.time = None
-        self.mouse_number: int = 0
+        self.mouse: int = 0
         self.rig: str = 'None Specified'
+
+        # Odor information
+        # If the trial only has one odor and concentration these will populate
+        self.odor: str = ''
+        self.concentration: float = 0.0
 
         # Quantitative Values
         self.total_trials: int = 0
@@ -119,7 +123,6 @@ class DewanH5:
                       "You must manually close the file reference using the close() method before deleting this instance!")
 
         return self.__enter__()
-
 
 
     def close(self):
