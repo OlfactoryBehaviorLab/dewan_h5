@@ -6,10 +6,10 @@ This library serves to load, parse, and serve the contents of H5 files from the 
 #### Matrix located at `/Trials` that contains parameters for each trial
 ##### Each entry in the following format `Common Name [column_name, data type]`
 
-- `Trial Type (int)`: Value which encodes the trial type
+- `Trial Type [Trialtype, int]`: Value which encodes the trial type
   - **1**: Go (no licking)
   - **2**: NoGo (licking)
-- `Response (int)`: Value that represents the response of the animal
+- `Response [_result, int]`: Value that represents the response of the animal
   - **1**: Correct "Go" Response >>> The stimulus was a 'Go' stimulus and the animal correctly withheld licking
   - **2**: Correct "NoGo" Response >>> The stimulus was a 'NoGo' stimulus and the animal correctly licked 
   - **3**: False Alarm / Incorrect "NoGo" Response >>> The stimulus was a "NoGo" stimulus and the animal incorrectly withheld licking
@@ -24,7 +24,10 @@ This library serves to load, parse, and serve the contents of H5 files from the 
 - `Odor Name ["Odor", str]`: Name of odorant presented during the trial
 - `Odor Concentration ["Odorconc", str]`: Concentration of odorant presented during the trial
 - `Odor Vial Number ["Odorvial", int]`: Olfactometer vial used to deliver the odorant during the trial
-- 
+- `Inter Trial Interval (ITI) [iti, str]`: Time in milliseconds between current trial and next trial
+- `Mouse ID [mouse, int]`: ID number of animal ran in the experiment
+- `Rig Name [rig, str]`: Name of behavioral chamber 
+
 ### H5 File Structure
 ___
 - **Values**:
