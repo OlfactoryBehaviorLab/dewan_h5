@@ -99,6 +99,10 @@ class DewanH5:
         self.trial_parameters = trial_parameters.map(lambda x: x.decode() if isinstance(x, bytes) else x)
         # Convert all the bytes to strings
 
+        three_missed = self.trial_parameters['_threemissed'].sum()
+        if three_missed > 0:
+            self.three_missed = True
+
 
     def _parse_general_params(self):
         _rig = str(self.trial_parameters['rig'].values[0])
