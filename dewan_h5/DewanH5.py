@@ -40,6 +40,7 @@ class DewanH5:
         self.go_performance: int = 0
         self.nogo_performance: int = 0
         self.total_performance: int = 0
+
         self.three_missed: bool = False
         self.did_cheat: bool = False
 
@@ -132,9 +133,44 @@ class DewanH5:
             self.__exit__(None, None, None)
 
 
-    def export(self, path: Union[None, Path] = None, file_name: Union[None, str] = None) -> None:
-        
-        pass
+    def export(self, path: Union[None, Path, str] = None, file_name: Union[None, str] = None,
+               create_output_dir: Union[None, bool] = False) -> None:
+
+        default_path = self.file_path.with_suffix('.xlsx').with_stem(f'{self.file_path.stem}-TrialParams')
+
+        export_dir = None
+
+        if path:
+            if isinstance(path, str): # If the user passes a string, convert it to a path first
+                path = Path(path)
+
+            if path.exists():
+                export_dir = path
+            elif create_output_dir:
+                path.mkdir(parents=True, exist_ok=True)
+                export_dir = path
+            else:
+                warnings.warn(f'{path} does not exist! Using the default path {default_path}')
+                export_dir = default_path.parent
+
+        if file_name:
+            export_file_name = f'{file_name}.xlsx'
+        else:
+            export_file_name = default_path.name
+
+        if export_dir and export_file_name:
+            export_file_path = export_dir.joinpath(export_file_name)
+        elif export_dir:
+            export_file_path = export_dir.joinpath(default_path.name)
+        elif export_file_name:
+            export_file_path = default_path.parent.joinpath(export_file_name)
+        else:
+            export_file_path = default_path
+
+
+        self.trial_parameters.to_excel(export_file_path)
+
+
 
     def debug_enter(self):
         warnings.warn("Using DewanH5 outside of a context manager is NOT recommended! "
