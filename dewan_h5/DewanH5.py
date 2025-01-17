@@ -14,13 +14,17 @@ from datetime import datetime
 from pathlib import Path
 from typing import Union
 
+FIRST_GOOD_TRIAL = 10  # We typically ignore the first ten trials
+
 
 class DewanH5:
 
-    def __init__(self, file_path:  Union[None, Path] = None, suppress_errors=False):
+    def __init__(self, file_path:  Union[None, Path] = None, trim_trials: Union[None, bool] = True, suppress_errors=False):
         self.file_path = file_path
         self.file_name = file_path.name
         self.suppress_errors = suppress_errors
+        self.trim_trials = trim_trials
+
         self._file: Union[h5py.File, None] = None
 
         # General parameters from H5 File
@@ -42,6 +46,7 @@ class DewanH5:
         self.total_performance: int = 0
 
         self.three_missed: bool = False
+        self.last_good_trial: int = 0
         self.did_cheat: bool = False
 
         # Data Containers
@@ -53,19 +58,25 @@ class DewanH5:
 
     def _parse_packets(self):
         trial_names = list(self._file.keys())[:-1]
+        if self.trim_trials:
+            trial_names = trial_names[FIRST_GOOD_TRIAL:self.last_good_trial]
 
-        for index in range(len(trial_names)):
+        for index, trial_name in enumerate(trial_names):
             timestamps = []
             sniff_samples = []
             lick_1_timestamps = []
             lick_2_timestamps = []
-            trial_packet = self._file[trial_names[index]]
 
+            trial_packet = self._file[trial_name]
             sniff_events = trial_packet['Events']
             raw_sniff_samples = trial_packet['sniff']
             raw_lick_1_timestamps = trial_packet['lick1']
             raw_lick_2_timestamps = trial_packet['lick2']
 
+            trial_number_str = trial_name[5:]
+            trial_number = int(trial_number_str)
+
+            # We can use the index since trial_parameters was just trimmed
             fv_on_time = self.trial_parameters.iloc[index]['fvOnTime'].astype(int)
 
             for timestamp, num_samples in sniff_events:
@@ -82,9 +93,9 @@ class DewanH5:
             lick_2_timestamps = [int(ts - fv_on_time) for ts in lick_2_timestamps]
             sniff_data = pd.Series(sniff_samples, index=fv_offset_ts, name='sniff')
 
-            self.sniff[index] = sniff_data
-            self.lick1[index] = lick_1_timestamps
-            self.lick2[index] = lick_2_timestamps
+            self.sniff[trial_number] = sniff_data
+            self.lick1[trial_number] = lick_1_timestamps
+            self.lick2[trial_number] = lick_2_timestamps
 
 
     def _parse_trial_matrix(self):
@@ -100,9 +111,23 @@ class DewanH5:
         self.trial_parameters = trial_parameters.map(lambda x: x.decode() if isinstance(x, bytes) else x)
         # Convert all the bytes to strings
 
-        three_missed = self.trial_parameters['_threemissed'].sum()
-        if three_missed > 0:
+        # See if three-missed was triggered
+        three_missed_mask = self.trial_parameters['_threemissed'] == 1
+
+        if three_missed_mask.sum() > 0:
             self.three_missed = True
+
+        if self.trim_trials: # We need to trim the matrix
+            last_good_trial = self.trial_parameters.shape[0]  # By default, we won't trim anything
+
+            if self.three_missed: # We need to trim everything after three-missed
+                three_missed_index = self.trial_parameters[three_missed_mask].index.tolist()
+                last_good_trial = three_missed_index[0] - 2
+                # The first 1 is the first trial after the third missed "Go" trial
+                # We also do not want the third missed "Go" trial, so we subtract two to get to the final trial
+
+            self.last_good_trial = last_good_trial
+            self.trial_parameters = self.trial_parameters.iloc[FIRST_GOOD_TRIAL:last_good_trial]
 
 
     def _parse_general_params(self):
@@ -190,9 +215,10 @@ class DewanH5:
 
         self._open()
         self._parse_trial_matrix()
+        self._parse_packets()
         self._parse_general_params()
         self._set_time()
-        self._parse_packets()
+
         return self
 
 
