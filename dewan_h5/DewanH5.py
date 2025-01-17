@@ -3,6 +3,7 @@ Dewan Lab H5 Parsing Library
 Author: Austin Pauley (pauley@psy.fsu.edu)
 Date: 01-04-2025
 """
+
 import traceback
 import warnings
 
@@ -33,12 +34,14 @@ class DewanH5:
         self.odor: str = ''
         self.concentration: float = 0.0
 
-        # Quantitative Values
+        # Performance Values
         self.total_trials: int = 0
         self.total_water_ul: int = 0
         self.go_performance: int = 0
         self.nogo_performance: int = 0
         self.total_performance: int = 0
+        self.three_missed: bool = False
+        self.did_cheat: bool = False
 
         # Data Containers
         self.trial_parameters: Union[pd.DataFrame, None] = None
@@ -99,7 +102,8 @@ class DewanH5:
 
     def _set_experiment_vals(self):
         self.rig = str(self.trial_parameters['rig'].values[0])
-        self.mouse_number = self.trial_parameters['mouse'].values[0]
+
+        self.mouse = self.trial_parameters['mouse'].values[0]
         self.total_trials = self.trial_parameters.shape[0]
 
 
@@ -159,7 +163,7 @@ class DewanH5:
 
     def __str__(self):
         return (f'Dewan Lab H5 file: {self.file_path.name}\n'
-                f'Mouse: {self.mouse_number}\n'
+                f'Mouse: {self.mouse}\n'
                 f'Experiment Date: {self.date}\n'
                 f'Experiment Time: {self.time}\n'
                 f'Rig: {self.rig}\n'
