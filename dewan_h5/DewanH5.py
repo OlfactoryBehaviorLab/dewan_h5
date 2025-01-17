@@ -100,13 +100,14 @@ class DewanH5:
         # Convert all the bytes to strings
 
 
-    def _set_experiment_vals(self):
+    def _parse_general_params(self):
         _rig = str(self.trial_parameters['rig'].values[0])
         _rig = _rig.split(" ")
         if len(_rig) > 1:
             self.rig = "-".join(_rig)
         else:
             self.rig = _rig[0]
+        # Remove spaces if they exist from the rig name
 
         self.mouse = self.trial_parameters['mouse'].values[0]
         self.total_trials = self.trial_parameters.shape[0]
@@ -149,7 +150,7 @@ class DewanH5:
 
         self._open()
         self._parse_trial_matrix()
-        self._set_experiment_vals()
+        self._parse_general_params()
         self._set_time()
         self._parse_packets()
         return self
