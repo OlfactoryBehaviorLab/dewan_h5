@@ -176,3 +176,5 @@ GoodSniffData/
 **/test.py
 
 uv.lock
+
+*.xlsx
