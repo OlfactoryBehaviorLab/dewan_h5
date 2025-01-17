@@ -101,7 +101,12 @@ class DewanH5:
 
 
     def _set_experiment_vals(self):
-        self.rig = str(self.trial_parameters['rig'].values[0])
+        _rig = str(self.trial_parameters['rig'].values[0])
+        _rig = _rig.split(" ")
+        if len(_rig) > 1:
+            self.rig = "-".join(_rig)
+        else:
+            self.rig = _rig[0]
 
         self.mouse = self.trial_parameters['mouse'].values[0]
         self.total_trials = self.trial_parameters.shape[0]
