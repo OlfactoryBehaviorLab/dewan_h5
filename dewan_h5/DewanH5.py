@@ -41,6 +41,7 @@ class DewanH5:
         # Performance Values
         self.total_trials: int = 0
         self.total_water_ul: int = 0
+
         self.go_performance: int = 0
         self.nogo_performance: int = 0
         self.total_performance: int = 0
@@ -148,6 +149,29 @@ class DewanH5:
         self.date, self.time = DewanH5.convert_date(file_time)
 
 
+    def _calculate_performance(self):
+        # TODO: Do cheating checks need to be removed?
+
+        results = self.trial_parameters['_result']
+
+        correct_go_trials = sum(results == 1) # Response 1
+        incorrect_go_trials = sum(results == 5) # Response 5
+
+        total_gos = correct_go_trials + incorrect_go_trials
+
+        correct_nogo_trials = sum(results == 2) # Response 2
+        incorrect_nogo_trials = sum(results == 3) # Response 3
+
+        total_nogos = correct_nogo_trials + incorrect_nogo_trials
+
+        total_trials = total_gos + total_nogos
+        correct_trials = correct_go_trials + correct_nogo_trials
+
+        self.nogo_performance = round((correct_nogo_trials / total_nogos) * 100, 2)
+        self.go_performance = round((correct_go_trials / total_gos) * 100, 2)
+        self.total_performance = round((correct_trials / total_trials) * 100, 2)
+
+
     def _open(self):
         try:
             self._file = h5py.File(self.file_path, 'r')
@@ -196,7 +220,6 @@ class DewanH5:
         self.trial_parameters.to_excel(export_file_path)
 
 
-
     def debug_enter(self):
         warnings.warn("Using DewanH5 outside of a context manager is NOT recommended! "
                       "You must manually close the file reference using the close() method before deleting this instance!")
@@ -211,13 +234,14 @@ class DewanH5:
     def __enter__(self):
         if not self.file_path:
             print('No file path passed, opening file browser!')
-            #open file browser
+            # open file browser
 
         self._open()
         self._parse_trial_matrix()
         self._parse_packets()
         self._parse_general_params()
         self._set_time()
+        self._calculate_performance()
 
         return self
 
