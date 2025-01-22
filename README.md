@@ -4,6 +4,13 @@
 
 This library serves to load, parse, and serve the contents of H5 files from the lab's Arduino- and Voyeur-based behavior setups.
 
+## Installation
+1) Using PyPi: Simply run `pip install dewan_h5` and the latest version will be pulled from PyPi
+2) Local Installation
+   1) Clone the repository using `git clone https://github.com/OlfactoryBehaviorLab/dewan_h5`
+   2) Navigate into the `dewan_h5` directory
+   3) Execute `pip install .` or `pip install -e .` if you want the repository to be editable
+
 ## Usage
 > Info: The DewanH5 class is intended to be used within a Python [context manager](https://docs.python.org/3/reference/datamodel.html#context-managers).  
 > Usage outside a context manager is not supported
