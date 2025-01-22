@@ -19,11 +19,19 @@ FIRST_GOOD_TRIAL = 10  # We typically ignore the first ten trials
 
 class DewanH5:
 
-    def __init__(self, file_path:  Union[None, Path] = None, trim_trials: Union[None, bool] = True, suppress_errors=False):
-        self.file_path = file_path
-        self.file_name = file_path.name
-        self.suppress_errors = suppress_errors
-        self.trim_trials = trim_trials
+    def __init__(self, file_path: Union[None, Path, str], trim_trials: Union[None, bool]=True, suppress_errors: bool=False):
+
+        if isinstance(file_path, str):
+            file_path = Path(file_path)
+
+        if not file_path:
+            # Open a file selector
+            pass
+
+        self.file_path: Path = file_path
+        self.file_name: str = file_path.name
+        self.suppress_errors: bool = suppress_errors
+        self.trim_trials: bool = trim_trials
 
         self._file: Union[h5py.File, None] = None
 
