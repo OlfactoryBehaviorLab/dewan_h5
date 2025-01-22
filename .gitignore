@@ -173,7 +173,7 @@ data/
 .idea/
 
 GoodSniffData/
-**/test.py
+test.py
 
 uv.lock
 
