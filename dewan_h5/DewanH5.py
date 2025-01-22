@@ -171,6 +171,18 @@ class DewanH5:
         self.total_performance = round((correct_trials / total_trials) * 100, 2)
 
 
+    def _get_cheating_trials(self):
+        cheat_trial_mask = (self.trial_parameters['Odor'] == 'blank') & (self.trial_parameters['Trialtype'] == 2)
+        cheat_check_trials = self.trial_parameters.loc[cheat_trial_mask]
+        cheat_check_results = cheat_check_trials['_result']
+        num_cheating_trials = sum(cheat_check_results == 2)
+
+        if num_cheating_trials > 0:
+            self.did_cheat = True
+
+        self.cheat_check_trials = cheat_check_trials
+
+
     def _open(self):
         try:
             self._file = h5py.File(self.file_path, 'r')
@@ -241,6 +253,7 @@ class DewanH5:
         self._parse_general_params()
         self._set_time()
         self._calculate_performance()
+        self._get_cheating_trials()
 
         return self
 
