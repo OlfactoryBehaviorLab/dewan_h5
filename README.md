@@ -120,3 +120,6 @@ ___
 - `Mouse ID [mouse, int]`: ID number of animal ran in the experiment
 - `Rig Name [rig, str]`: Name of behavioral chamber 
 
+## License
+
+This project is licensed under GNU General Public License v3.0. You can find the included copy of the license [here](LICENSE.txt). For more information about the license and its terms, please visit [SPDX](https://spdx.org/licenses/GPL-3.0-or-later.html)
