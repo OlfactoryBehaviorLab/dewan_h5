@@ -36,8 +36,8 @@ class DewanH5:
         self._file: Union[h5py.File, None] = None
 
         # General parameters from H5 File
-        self.date = None
-        self.time = None
+        self.date: str = 'None Specified'
+        self.time: str = 'None Specified'
         self.mouse: int = 0
         self.rig: str = 'None Specified'
 
@@ -47,16 +47,16 @@ class DewanH5:
 
         # Performance Values
         self.total_trials: int = 0
-        self.go_performance: int = 0
-        self.nogo_performance: int = 0
-        self.total_performance: int = 0
+        self.go_performance: float = 0
+        self.nogo_performance: float = 0
+        self.total_performance: float = 0
         self.three_missed: bool = False
         self.last_good_trial: int = 0
         self.did_cheat: bool = False
         self.cheat_check_trials: list[int] = []
 
         # Data Containers
-        self.trial_parameters: Union[pd.DataFrame, None] = None
+        self.trial_parameters: pd.DataFrame = None
         self.sniff: dict[int, pd.Series] = {}
         self.lick1: dict[int, list] = {}
         self.lick2: dict[int, list] = {}
