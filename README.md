@@ -10,7 +10,7 @@ This library serves to load, parse, and serve the contents of H5 files from the 
 
 ### Example:
 ```python
-from DewanH5 import DewanH5
+from dewan_h5 import DewanH5
 
 file_path = 'path/to/h5/file/file.h5'
 
