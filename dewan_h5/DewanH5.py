@@ -34,21 +34,18 @@ class DewanH5:
         self.rig: str = 'None Specified'
 
         # Odor information
-        # If the trial only has one odor and concentration these will populate
-        self.odor: str = ''
-        self.concentration: float = 0.0
+        self.odors: list[str] = []
+        self.concentrations: list[float] = []
 
         # Performance Values
         self.total_trials: int = 0
-        self.total_water_ul: int = 0
-
         self.go_performance: int = 0
         self.nogo_performance: int = 0
         self.total_performance: int = 0
-
         self.three_missed: bool = False
         self.last_good_trial: int = 0
         self.did_cheat: bool = False
+        self.cheat_check_trials: list[int] = []
 
         # Data Containers
         self.trial_parameters: Union[pd.DataFrame, None] = None
@@ -140,6 +137,8 @@ class DewanH5:
             self.rig = _rig[0]
         # Remove spaces if they exist from the rig name
 
+        self.odors = self.trial_parameters['Odor'].unique()
+        self.concentrations = self.trial_parameters['Odorconc'].unique()
         self.mouse = self.trial_parameters['mouse'].values[0]
         self.total_trials = self.trial_parameters.shape[0]
 
