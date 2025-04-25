@@ -8,6 +8,7 @@ import traceback
 import warnings
 
 import h5py
+import numpy as np
 import pandas as pd
 
 from datetime import datetime
@@ -15,7 +16,7 @@ from pathlib import Path
 from typing import Union
 
 FIRST_GOOD_TRIAL = 10  # We typically ignore the first ten trials
-
+PRE_FV_TIME_MS = 5000
 
 class DewanH5:
 
@@ -69,45 +70,85 @@ class DewanH5:
 
 
     def _parse_packets(self):
-        trial_names = list(self._file.keys())[:-1]
-        if self.trim_trials:
-            trial_names = trial_names[FIRST_GOOD_TRIAL:self.last_good_trial]
+        try:
+            trial_names = list(self._file.keys())[:-1]
+            prev_trial_names = trial_names[FIRST_GOOD_TRIAL-1:self.last_good_trial-1]
+            current_trial_names = trial_names[FIRST_GOOD_TRIAL:self.last_good_trial]
 
-        for index, trial_name in enumerate(trial_names):
-            timestamps = []
-            sniff_samples = []
-            lick_1_timestamps = []
-            lick_2_timestamps = []
+            trial_pairs = zip(current_trial_names, prev_trial_names)
+            shortest_ITI = self.trial_parameters['iti'].min()
 
-            trial_packet = self._file[trial_name]
-            sniff_events = trial_packet['Events']
-            raw_sniff_samples = trial_packet['sniff']
-            raw_lick_1_timestamps = trial_packet['lick1']
-            raw_lick_2_timestamps = trial_packet['lick2']
+            if shortest_ITI > PRE_FV_TIME_MS:
+                shortest_ITI = PRE_FV_TIME_MS
 
-            trial_number_str = trial_name[5:]
-            trial_number = int(trial_number_str)
+            fv_times = self.trial_parameters['fvOnTime'].astype(int)
 
-            # We can use the index since trial_parameters was just trimmed
-            fv_on_time = self.trial_parameters.iloc[index]['fvOnTime'].astype(int)
+            for index, (trial_name, prev_trial_name) in enumerate(trial_pairs):
+                timestamps = []
+                sniff_samples = []
+                prev_sniff_samples = []
+                lick_1_timestamps = []
+                lick_2_timestamps = []
 
-            for timestamp, num_samples in sniff_events:
-                new_ts = list(range(timestamp, timestamp + num_samples))
-                timestamps.extend(new_ts)
+                trial_packet = self._file[trial_name]
+                sniff_events = trial_packet['Events']
+                raw_sniff_samples = trial_packet['sniff']
+                raw_lick_1_timestamps = trial_packet['lick1']
+                raw_lick_2_timestamps = trial_packet['lick2']
 
-            # Equivalent of np.hstack() should be a bit better than nested for loops
-            _ = [sniff_samples.extend(sample_bin) for sample_bin in raw_sniff_samples]
-            _ = [lick_1_timestamps.extend(lick_bin) for lick_bin in raw_lick_1_timestamps]
-            _ = [lick_2_timestamps.extend(lick_bin) for lick_bin in raw_lick_2_timestamps]
+                # prev_trial_packet = self._file[prev_trial_name]
+                # raw_prev_sniff_samples = prev_trial_packet['sniff']
 
-            fv_offset_ts = [int(ts - fv_on_time) for ts in timestamps]
-            lick_1_timestamps = [int(ts - fv_on_time) for ts in lick_1_timestamps]
-            lick_2_timestamps = [int(ts - fv_on_time) for ts in lick_2_timestamps]
-            sniff_data = pd.Series(sniff_samples, index=fv_offset_ts, name='sniff')
+                trial_number_str = trial_name[5:]
+                trial_number = int(trial_number_str)
 
-            self.sniff[trial_number] = sniff_data
-            self.lick1[trial_number] = lick_1_timestamps
-            self.lick2[trial_number] = lick_2_timestamps
+                # We can use the index since trial_parameters was just trimmed
+                fv_on_time = fv_times.iloc[index]
+
+                for timestamp, num_samples in sniff_events:
+                    new_ts = list(range(timestamp, timestamp + num_samples))
+                    timestamps.extend(new_ts)
+                # Equivalent of np.hstack() should be a bit better than nested for loops
+                # _ = [sniff_samples.extend(sample_bin) for sample_bin in raw_sniff_samples]
+                # _ = [prev_sniff_samples.extend(sample_bin) for sample_bin in raw_prev_sniff_samples]
+                # _ = [lick_1_timestamps.extend(lick_bin) for lick_bin in raw_lick_1_timestamps]
+                # _ = [lick_2_timestamps.extend(lick_bin) for lick_bin in raw_lick_2_timestamps]
+
+                # events = sniff_events[:]
+                # start_times = events['packet_sent_time'][:-1]
+                # end_times = events['packet_sent_time'][1:]
+                # steps = events['sniff_samples']
+
+                # timestamps = np.linspace(start_times, end_times, steps, endpoint=False)
+
+                sniff_samples = self.hstack_or_none(raw_sniff_samples[:])
+                lick_1_timestamps = self.hstack_or_none(raw_lick_1_timestamps[:])
+                lick_2_timestamps = self.hstack_or_none(raw_lick_2_timestamps[:])
+
+
+
+                # fv_offset_ts = [int(ts - fv_on_time) for ts in timestamps]
+                # earliest_timestamp_magnitude = abs(fv_offset_ts[0])
+                # num_pretrial_frames = shortest_ITI - earliest_timestamp_magnitude
+
+                # pretrial_frames = prev_sniff_samples[-num_pretrial_frames:]
+
+
+                # lick_1_timestamps = [int(ts - fv_on_time) for ts in lick_1_timestamps]
+                # lick_2_timestamps = [int(ts - fv_on_time) for ts in lick_2_timestamps]
+                lick_1_timestamps = self.sub_or_none(lick_1_timestamps, fv_on_time)
+                lick_2_timestamps = self.sub_or_none(lick_2_timestamps, fv_on_time)
+                timestamps = self.sub_or_none(timestamps, fv_on_time)
+
+                sniff_data = pd.Series(sniff_samples, index=timestamps, name='sniff')
+
+                self.sniff[trial_number] = sniff_data
+                self.lick1[trial_number] = lick_1_timestamps
+                self.lick2[trial_number] = lick_2_timestamps
+
+        except Exception as e:
+            print('Error parsing licking and sniffing packets!')
+            raise e
 
 
     def _parse_trial_matrix(self):
@@ -317,4 +358,20 @@ class DewanH5:
         date = unix_time_datetime.strftime('%a %b %d, %Y')
         time = unix_time_datetime.strftime('%I:%M%p')
         return date, time
+
+
+    @staticmethod
+    def hstack_or_none(data):
+        if len(data) > 0:
+            return np.hstack(data)
+
+        return None
+
+
+    @staticmethod
+    def sub_or_none(data, val):
+        if data is not None:
+            return data - val
+        else:
+            return []
 
