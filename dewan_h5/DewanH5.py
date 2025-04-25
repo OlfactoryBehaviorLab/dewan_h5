@@ -111,25 +111,26 @@ class DewanH5:
 
 
     def _parse_trial_matrix(self):
-        trial_matrix = self._file['Trials']
-        trial_matrix_attrs = trial_matrix.attrs
-        table_col = [trial_matrix_attrs[key].astype(str) for key in trial_matrix_attrs.keys() if 'NAME' in key]
-        data_dict = {}
+        try:
+            trial_matrix = self._file['Trials']
+            trial_matrix_attrs = trial_matrix.attrs
+            table_col = [trial_matrix_attrs[key].astype(str) for key in trial_matrix_attrs.keys() if 'NAME' in key]
+            data_dict = {}
 
-        for col in table_col:
-            data_dict[col] = trial_matrix[col]
+            for col in table_col:
+                data_dict[col] = trial_matrix[col]
 
-        trial_parameters = pd.DataFrame(data_dict)
-        self.trial_parameters = trial_parameters.map(lambda x: x.decode() if isinstance(x, bytes) else x)
-        # Convert all the bytes to strings
+            trial_parameters = pd.DataFrame(data_dict)
+            self.trial_parameters = trial_parameters.map(lambda x: x.decode() if isinstance(x, bytes) else x)
+            # Convert all the bytes to strings
 
-        # See if three-missed was triggered
-        three_missed_mask = self.trial_parameters['_threemissed'] == 1
+            # See if three-missed was triggered
+            three_missed_mask = self.trial_parameters['_threemissed'] == 1
 
-        if three_missed_mask.sum() > 0:
-            self.three_missed = True
+            if three_missed_mask.sum() > 0:
+                self.three_missed = True
 
-        if self.trim_trials: # We need to trim the matrix
+
             last_good_trial = self.trial_parameters.shape[0]  # By default, we won't trim anything
 
             if self.three_missed: # We need to trim everything after three-missed
@@ -141,26 +142,37 @@ class DewanH5:
             self.last_good_trial = last_good_trial
             self._raw_trial_parameters = self.trial_parameters.copy()
             self.trial_parameters = self.trial_parameters.iloc[FIRST_GOOD_TRIAL:last_good_trial]
+        except TypeError as te:
+            print('Error reading or parsing the trial parameters matrix!')
+            raise te
 
 
     def _parse_general_params(self):
-        _rig = str(self.trial_parameters['rig'].values[0])
-        _rig = _rig.split(" ")
-        if len(_rig) > 1:
-            self.rig = "-".join(_rig)
-        else:
-            self.rig = _rig[0]
-        # Remove spaces if they exist from the rig name
+        try:
+            _rig = str(self.trial_parameters['rig'].values[0])
+            _rig = _rig.split(" ")
+            if len(_rig) > 1:
+                self.rig = "-".join(_rig)
+            else:
+                self.rig = _rig[0]
+            # Remove spaces if they exist from the rig name
 
-        self.odors = self.trial_parameters['Odor'].unique()
-        self.concentrations = self.trial_parameters['Odorconc'].unique()
-        self.mouse = self.trial_parameters['mouse'].values[0]
-        self.total_trials = self.trial_parameters.shape[0]
+            self.odors = self.trial_parameters['Odor'].unique()
+            self.concentrations = self.trial_parameters['Odorconc'].unique()
+            self.mouse = self.trial_parameters['mouse'].values[0]
+            self.total_trials = self.trial_parameters.shape[0]
+        except Exception as e:
+            print('Error when parsing general experiment parameters!')
+            raise e
 
 
     def _set_time(self):
-        file_time = self._file.attrs['start_date']
-        self.date, self.time = DewanH5.convert_date(file_time)
+        try:
+            file_time = self._file.attrs['start_date']
+            self.date, self.time = DewanH5.convert_date(file_time)
+        except Exception as e:
+            print('Error converting and setting time!')
+            raise e
 
 
     def _calculate_performance(self):
@@ -203,9 +215,7 @@ class DewanH5:
             self._file = h5py.File(self.file_path, 'r')
         except FileNotFoundError as e:
             print(f'Error! {self.file_path} not found!')
-            print(traceback.format_exc())
-            self._file = None
-            self.__exit__(None, None, None)
+            raise e
 
 
     def export(self, path: Union[None, Path, str] = None, file_name: Union[None, str] = None,
@@ -267,6 +277,7 @@ class DewanH5:
         self._parse_packets()
         self._parse_general_params()
         self._set_time()
+
         self._calculate_performance()
         self._get_cheating_trials()
 
