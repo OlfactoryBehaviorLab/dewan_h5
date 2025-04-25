@@ -290,9 +290,12 @@ class DewanH5:
 
         if exc_type is not None:
             if self.suppress_errors:
+                print('Error opening H5 File!')
                 return True
             else:
                 return False
+        else:
+            return True
 
 
     def __str__(self):
@@ -305,7 +308,7 @@ class DewanH5:
 
 
     def __repr__(self):
-        return str(f'Type: type(self)')
+        return str(f'Type: {type(self)}')
 
 
     @staticmethod
