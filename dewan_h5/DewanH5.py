@@ -61,6 +61,12 @@ class DewanH5:
         self.lick1: dict[int, list] = {}
         self.lick2: dict[int, list] = {}
 
+        # Raw Data
+        self._raw_trial_parameters: pd.DataFrame = None
+        self._raw_sniff: dict[int, pd.Series] = {}
+        self._raw_lick1: dict[int, list] = {}
+        self._raw_lick2: dict[int, list] = {}
+
 
     def _parse_packets(self):
         trial_names = list(self._file.keys())[:-1]
@@ -133,6 +139,7 @@ class DewanH5:
                 # We also do not want the third missed "Go" trial, so we subtract two to get to the final trial
 
             self.last_good_trial = last_good_trial
+            self._raw_trial_parameters = self.trial_parameters.copy()
             self.trial_parameters = self.trial_parameters.iloc[FIRST_GOOD_TRIAL:last_good_trial]
 
 
