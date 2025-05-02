@@ -19,6 +19,26 @@ FIRST_GOOD_TRIAL = 10  # We typically ignore the first ten trials
 PRE_FV_TIME_MS = 2000
 MS_PER_PACKET = 1 # (ms) 100 Samples / 1000ms
 
+TRIAL_PARAMETER_COLUMNS = {
+        'Odor': 'odor',
+        'fvdur' : 'fv_duration_ms',
+        'grace_period': 'grace_period_ms',
+        'iti': 'iti_ms',
+        'Odorconc': 'concentration',
+        'paramsgottime': 'params_got_time_ms',
+        'starttrial': 'trial_start_ms',
+        'endtrial': 'trial_end_ms',
+        'trialNumber': 'trial_number',
+        'trialdur': 'trial_duration_ms',
+        'waterdur': 'water_duration_ms',
+        'waterdur2': 'water_duration_ms_2',
+        'Odorvial': 'vial_number',
+        'Trialtype': 'trial_type',
+        '_result': 'result',
+        '_threemissed': 'three_missed',
+        'fvOnTime': 'fv_on_time_ms'
+}
+
 class DewanH5:
 
     def __init__(self, file_path: Union[None, Path, str], trim_trials: Union[None, bool]=True, suppress_errors: bool=False):
@@ -76,15 +96,15 @@ class DewanH5:
             prev_trial_names = trial_names[FIRST_GOOD_TRIAL-1:self.last_good_trial-1]
             current_trial_names = trial_names[FIRST_GOOD_TRIAL:self.last_good_trial]
             trial_pairs = zip(current_trial_names, prev_trial_names)
-            shortest_ITI = self.trial_parameters['iti'].min()
+            shortest_ITI = self.trial_parameters['iti_ms'].min()
 
             if shortest_ITI > PRE_FV_TIME_MS:
                 shortest_ITI = PRE_FV_TIME_MS
 
             # Relevant Trial Parameters: These are already trimmed from FIRST_GOOD_TRIAL -> last good trial
-            fv_times = self.trial_parameters['fvOnTime'].astype(int)
-            start_times = self.trial_parameters['starttrial'].astype(int)
-            end_times = self.trial_parameters['endtrial'].astype(int)
+            fv_times = self.trial_parameters['fv_on_time_ms'].astype(int)
+            start_times = self.trial_parameters['trial_start_ms'].astype(int)
+            end_times = self.trial_parameters['trial_end_ms'].astype(int)
             trial_durations = end_times - start_times
 
             # Loop through the pairs of trials; trial_pairs will be from FIRST_GOOD_TRIAL -> last good trial
@@ -169,11 +189,12 @@ class DewanH5:
 
             trial_parameters = pd.DataFrame(data_dict)
             trial_parameters.index = trial_names
+            trial_parameters = trial_parameters.rename(columns=TRIAL_PARAMETER_COLUMNS)
             self.trial_parameters = trial_parameters.map(lambda x: x.decode() if isinstance(x, bytes) else x)
             # Convert all the bytes to strings
 
             # See if three-missed was triggered
-            three_missed_mask = self.trial_parameters['_threemissed'] == 1
+            three_missed_mask = self.trial_parameters['three_missed'] == 1
 
             if three_missed_mask.sum() > 0:
                 self.three_missed = True
@@ -205,8 +226,8 @@ class DewanH5:
                 self.rig = _rig[0]
             # Remove spaces if they exist from the rig name
 
-            self.odors = self.trial_parameters['Odor'].unique()
-            self.concentrations = self.trial_parameters['Odorconc'].unique()
+            self.odors = self.trial_parameters['odor'].unique()
+            self.concentrations = self.trial_parameters['concentration'].unique()
             self.mouse = self.trial_parameters['mouse'].values[0]
             self.total_trials = self.trial_parameters.shape[0]
         except Exception as e:
@@ -226,7 +247,7 @@ class DewanH5:
     def _calculate_performance(self):
         # TODO: Do cheating checks need to be removed?
 
-        results = self.trial_parameters['_result']
+        results = self.trial_parameters['result']
 
         correct_go_trials = sum(results == 1) # Response 1
         incorrect_go_trials = sum(results == 5) # Response 5
@@ -247,9 +268,9 @@ class DewanH5:
 
 
     def _get_cheating_trials(self):
-        cheat_trial_mask = (self.trial_parameters['Odor'] == 'blank') & (self.trial_parameters['Trialtype'] == 2)
+        cheat_trial_mask = (self.trial_parameters['odor'] == 'blank') & (self.trial_parameters['trial_type'] == 2)
         cheat_check_trials = self.trial_parameters.loc[cheat_trial_mask]
-        cheat_check_results = cheat_check_trials['_result']
+        cheat_check_results = cheat_check_trials['result']
         num_cheating_trials = sum(cheat_check_results == 2)
 
         if num_cheating_trials > 0:
