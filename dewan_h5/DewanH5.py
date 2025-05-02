@@ -16,7 +16,8 @@ from pathlib import Path
 from typing import Union
 
 FIRST_GOOD_TRIAL = 10  # We typically ignore the first ten trials
-PRE_FV_TIME_MS = 5000
+PRE_FV_TIME_MS = 2000
+MS_PER_PACKET = 1 # (ms) 100 Samples / 1000ms
 
 class DewanH5:
 
@@ -71,24 +72,26 @@ class DewanH5:
 
     def _parse_packets(self):
         try:
-            trial_names = list(self._file.keys())[:-1]
+            trial_names = list(self._file.keys())[:-1] # Not zero indexed
             prev_trial_names = trial_names[FIRST_GOOD_TRIAL-1:self.last_good_trial-1]
             current_trial_names = trial_names[FIRST_GOOD_TRIAL:self.last_good_trial]
-
             trial_pairs = zip(current_trial_names, prev_trial_names)
             shortest_ITI = self.trial_parameters['iti'].min()
 
             if shortest_ITI > PRE_FV_TIME_MS:
                 shortest_ITI = PRE_FV_TIME_MS
 
+            # Relevant Trial Parameters: These are already trimmed from FIRST_GOOD_TRIAL -> last good trial
             fv_times = self.trial_parameters['fvOnTime'].astype(int)
+            start_times = self.trial_parameters['starttrial'].astype(int)
+            end_times = self.trial_parameters['endtrial'].astype(int)
+            trial_durations = end_times - start_times
 
+            # Loop through the pairs of trials; trial_pairs will be from FIRST_GOOD_TRIAL -> last good trial
             for index, (trial_name, prev_trial_name) in enumerate(trial_pairs):
                 timestamps = []
-                sniff_samples = []
-                prev_sniff_samples = []
-                lick_1_timestamps = []
-                lick_2_timestamps = []
+                trial_number = int(trial_name[5:])
+                fv_on_time = fv_times[trial_number]
 
                 trial_packet = self._file[trial_name]
                 sniff_events = trial_packet['Events']
@@ -96,51 +99,51 @@ class DewanH5:
                 raw_lick_1_timestamps = trial_packet['lick1']
                 raw_lick_2_timestamps = trial_packet['lick2']
 
-                # prev_trial_packet = self._file[prev_trial_name]
-                # raw_prev_sniff_samples = prev_trial_packet['sniff']
+                prev_trial_packet = self._file[prev_trial_name]
+                raw_prev_sniff_samples = prev_trial_packet['sniff']
 
-                trial_number_str = trial_name[5:]
-                trial_number = int(trial_number_str)
+                # Get Timestamps
+                events = sniff_events[:]
+                end_times = events['packet_sent_time']
+                steps = events['sniff_samples']
 
-                # We can use the index since trial_parameters was just trimmed
-                fv_on_time = fv_times.iloc[index]
+                for end_time, num_samples in zip(end_times, steps):
+                    elapsed_time = num_samples * MS_PER_PACKET
+                    start_time = end_time - elapsed_time
+                    ts = np.linspace(start_time, end_time, num_samples, endpoint=False)
+                    timestamps.extend(ts)
+                timestamps = np.array(timestamps)
 
-                for timestamp, num_samples in sniff_events:
-                    new_ts = list(range(timestamp, timestamp + num_samples))
-                    timestamps.extend(new_ts)
-                # Equivalent of np.hstack() should be a bit better than nested for loops
-                # _ = [sniff_samples.extend(sample_bin) for sample_bin in raw_sniff_samples]
-                # _ = [prev_sniff_samples.extend(sample_bin) for sample_bin in raw_prev_sniff_samples]
-                # _ = [lick_1_timestamps.extend(lick_bin) for lick_bin in raw_lick_1_timestamps]
-                # _ = [lick_2_timestamps.extend(lick_bin) for lick_bin in raw_lick_2_timestamps]
-
-                # events = sniff_events[:]
-                # start_times = events['packet_sent_time'][:-1]
-                # end_times = events['packet_sent_time'][1:]
-                # steps = events['sniff_samples']
-
-                # timestamps = np.linspace(start_times, end_times, steps, endpoint=False)
-
+                # Stack all samples together
                 sniff_samples = self.hstack_or_none(raw_sniff_samples[:])
+                prev_sniff_samples = self.hstack_or_none(raw_prev_sniff_samples[:])
                 lick_1_timestamps = self.hstack_or_none(raw_lick_1_timestamps[:])
                 lick_2_timestamps = self.hstack_or_none(raw_lick_2_timestamps[:])
 
-
-
-                # fv_offset_ts = [int(ts - fv_on_time) for ts in timestamps]
-                # earliest_timestamp_magnitude = abs(fv_offset_ts[0])
-                # num_pretrial_frames = shortest_ITI - earliest_timestamp_magnitude
-
-                # pretrial_frames = prev_sniff_samples[-num_pretrial_frames:]
-
-
-                # lick_1_timestamps = [int(ts - fv_on_time) for ts in lick_1_timestamps]
-                # lick_2_timestamps = [int(ts - fv_on_time) for ts in lick_2_timestamps]
+                # Offset times by final valve on time
                 lick_1_timestamps = self.sub_or_none(lick_1_timestamps, fv_on_time)
                 lick_2_timestamps = self.sub_or_none(lick_2_timestamps, fv_on_time)
-                timestamps = self.sub_or_none(timestamps, fv_on_time)
+                fv_offset_timestamps = self.sub_or_none(timestamps, fv_on_time)
+                earliest_timestamp = int(fv_offset_timestamps[0])
+                earliest_timestamp_magnitude = abs(earliest_timestamp)
+                # The amount of time we need to fill from the previous trial
+                time_to_fill = shortest_ITI - earliest_timestamp_magnitude
+                # The number of frames that hypothetically fill that time
+                num_pretrial_frames = np.floor(time_to_fill / MS_PER_PACKET).astype(int)
 
-                sniff_data = pd.Series(sniff_samples, index=timestamps, name='sniff')
+                start_timestamp = int(earliest_timestamp - time_to_fill)
+                fill_ts = np.linspace(start_timestamp, earliest_timestamp, num_pretrial_frames, endpoint=False)
+                pretrial_frames = prev_sniff_samples[-num_pretrial_frames:]
+
+                # Add frames from previous ITI to the beginning to get our full preFV time
+                filled_sniff_samples = np.hstack([pretrial_frames, sniff_samples])
+                filled_timestamps = np.hstack([fill_ts, fv_offset_timestamps])
+                sniff_data = pd.Series(filled_sniff_samples, index=filled_timestamps, name='sniff')
+
+                # If trimming the trials, we only want PRE_FV_TIME_MS -> trial_duration (end - start)
+                if self.trim_trials:
+                    trim_timestamp = trial_durations[trial_number]
+                    sniff_data = sniff_data.loc[:trim_timestamp]
 
                 self.sniff[trial_number] = sniff_data
                 self.lick1[trial_number] = lick_1_timestamps
@@ -154,6 +157,9 @@ class DewanH5:
     def _parse_trial_matrix(self):
         try:
             trial_matrix = self._file['Trials']
+            trial_names = list(self._file.keys())[:-1] # Not zero indexed
+            trial_names = np.arange(1, len(trial_names) + 1) # Reindex attributes to not be zero indexed
+
             trial_matrix_attrs = trial_matrix.attrs
             table_col = [trial_matrix_attrs[key].astype(str) for key in trial_matrix_attrs.keys() if 'NAME' in key]
             data_dict = {}
@@ -162,6 +168,7 @@ class DewanH5:
                 data_dict[col] = trial_matrix[col]
 
             trial_parameters = pd.DataFrame(data_dict)
+            trial_parameters.index = trial_names
             self.trial_parameters = trial_parameters.map(lambda x: x.decode() if isinstance(x, bytes) else x)
             # Convert all the bytes to strings
 
