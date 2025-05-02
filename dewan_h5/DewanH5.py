@@ -287,8 +287,7 @@ class DewanH5:
             raise e
 
 
-    def export(self, path: Union[None, Path, str] = None, file_name: Union[None, str] = None,
-               create_output_dir: Union[None, bool] = False) -> None:
+    def export(self, path: Union[None, Path, str] = None, file_name: Union[None, str] = None) -> None:
 
         default_path = self.file_path.with_suffix('.xlsx').with_stem(f'{self.file_path.stem}-TrialParams')
 
@@ -298,14 +297,10 @@ class DewanH5:
             if isinstance(path, str): # If the user passes a string, convert it to a path first
                 path = Path(path)
 
-            if path.exists():
-                export_dir = path
-            elif create_output_dir:
-                path.mkdir(parents=True, exist_ok=True)
-                export_dir = path
-            else:
-                warnings.warn(f'{path} does not exist! Using the default path {default_path}')
-                export_dir = default_path.parent
+            path.mkdir(parents=True, exist_ok=True)
+            export_dir = path
+        else:
+            print(f'{path} not supplied! Using the default path {default_path.parent}')
 
         if file_name:
             export_file_name = f'{file_name}.xlsx'
