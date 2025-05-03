@@ -4,7 +4,6 @@ Author: Austin Pauley (pauley@psy.fsu.edu)
 Date: 01-04-2025
 """
 
-import traceback
 import warnings
 
 import h5py
@@ -289,33 +288,19 @@ class DewanH5:
 
     def export(self, path: Union[None, Path, str] = None, file_name: Union[None, str] = None) -> None:
 
-        default_path = self.file_path.with_suffix('.xlsx').with_stem(f'{self.file_path.stem}-TrialParams')
-
-        export_dir = None
+        export_dir = self.file_path.parent
+        export_name = self.file_path.with_suffix('.xlsx').with_stem(f'{self.file_path.stem}-TrialParams').name
 
         if path:
             if isinstance(path, str): # If the user passes a string, convert it to a path first
                 path = Path(path)
-
             path.mkdir(parents=True, exist_ok=True)
             export_dir = path
-        else:
-            print(f'{path} not supplied! Using the default path {default_path.parent}')
 
         if file_name:
-            export_file_name = f'{file_name}.xlsx'
-        else:
-            export_file_name = default_path.name
+            export_name = f'{file_name}.xlsx'
 
-        if export_dir and export_file_name:
-            export_file_path = export_dir.joinpath(export_file_name)
-        elif export_dir:
-            export_file_path = export_dir.joinpath(default_path.name)
-        elif export_file_name:
-            export_file_path = default_path.parent.joinpath(export_file_name)
-        else:
-            export_file_path = default_path
-
+        export_file_path = export_dir.joinpath(export_name)
 
         self.trial_parameters.to_excel(export_file_path)
 
