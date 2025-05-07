@@ -145,19 +145,25 @@ class DewanH5:
                 fv_offset_timestamps = self.sub_or_none(timestamps, fv_on_time)
                 earliest_timestamp = int(fv_offset_timestamps[0])
                 earliest_timestamp_magnitude = abs(earliest_timestamp)
-                # The amount of time we need to fill from the previous trial
-                time_to_fill = shortest_ITI - earliest_timestamp_magnitude
-                # The number of frames that hypothetically fill that time
-                num_pretrial_frames = np.floor(time_to_fill / MS_PER_PACKET).astype(int)
 
-                start_timestamp = int(earliest_timestamp - time_to_fill)
-                fill_ts = np.linspace(start_timestamp, earliest_timestamp, num_pretrial_frames, endpoint=False)
-                pretrial_frames = prev_sniff_samples[-num_pretrial_frames:]
+                # If there is not enough pre-FV time, we need to fill in some data from the previous trial
+                if earliest_timestamp_magnitude < shortest_ITI:
+                    # The amount of time we need to fill from the previous trial
+                    time_to_fill = shortest_ITI - earliest_timestamp_magnitude
+                    # The number of frames that hypothetically fill that time
+                    num_pretrial_frames = np.floor(time_to_fill / MS_PER_PACKET).astype(int)
+                    start_timestamp = int(earliest_timestamp - time_to_fill)
 
-                # Add frames from previous ITI to the beginning to get our full preFV time
-                filled_sniff_samples = np.hstack([pretrial_frames, sniff_samples])
-                filled_timestamps = np.hstack([fill_ts, fv_offset_timestamps])
-                sniff_data = pd.Series(filled_sniff_samples, index=filled_timestamps, name='sniff')
+                    fill_ts = np.linspace(start_timestamp, earliest_timestamp, num_pretrial_frames, endpoint=False)
+                    pretrial_frames = prev_sniff_samples[-num_pretrial_frames:]
+
+                    # Add frames from previous ITI to the beginning to get our full preFV time
+                    filled_sniff_samples = np.hstack([pretrial_frames, sniff_samples])
+                    filled_timestamps = np.hstack([fill_ts, fv_offset_timestamps])
+
+                    sniff_data = pd.Series(filled_sniff_samples, index=filled_timestamps, name='sniff')
+                else:
+                    sniff_data = pd.Series(sniff_samples, index=fv_offset_timestamps, name='sniff')
 
                 # If trimming the trials, we only want PRE_FV_TIME_MS -> trial_duration (end - start)
                 if self.trim_trials:
