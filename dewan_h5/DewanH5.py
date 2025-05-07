@@ -92,8 +92,10 @@ class DewanH5:
     def _parse_packets(self):
         try:
             trial_names = list(self._file.keys())[:-1] # Not zero indexed
-            prev_trial_names = trial_names[FIRST_GOOD_TRIAL-1:self.last_good_trial-1]
-            current_trial_names = trial_names[FIRST_GOOD_TRIAL:self.last_good_trial]
+            prev_trial_name = trial_names[FIRST_GOOD_TRIAL-1]
+            current_trial_names = self.trial_parameters.index.values
+            prev_trial_names = np.hstack((prev_trial_name, current_trial_names[:-1]))
+
             trial_pairs = zip(current_trial_names, prev_trial_names)
             shortest_ITI = self.trial_parameters['iti_ms'].min()
 
@@ -103,14 +105,14 @@ class DewanH5:
             # Relevant Trial Parameters: These are already trimmed from FIRST_GOOD_TRIAL -> last good trial
             fv_times = self.trial_parameters['fv_on_time_ms'].astype(int)
             start_times = self.trial_parameters['trial_start_ms'].astype(int)
-            end_times = self.trial_parameters['trial_end_ms'].astype(int)
-            trial_durations = end_times - start_times
+            all_end_times = self.trial_parameters['trial_end_ms'].astype(int)
+            trial_durations = all_end_times - start_times
 
             # Loop through the pairs of trials; trial_pairs will be from FIRST_GOOD_TRIAL -> last good trial
             for index, (trial_name, prev_trial_name) in enumerate(trial_pairs):
                 timestamps = []
-                trial_number = int(trial_name[5:])
-                fv_on_time = fv_times[trial_number]
+                #trial_number = int(trial_name[5:])
+                fv_on_time = fv_times[trial_name]
 
                 trial_packet = self._file[trial_name]
                 sniff_events = trial_packet['Events']
@@ -167,12 +169,12 @@ class DewanH5:
 
                 # If trimming the trials, we only want PRE_FV_TIME_MS -> trial_duration (end - start)
                 if self.trim_trials:
-                    trim_timestamp = trial_durations[trial_number]
-                    sniff_data = sniff_data.loc[:trim_timestamp]
+                    trim_timestamp = trial_durations[trial_name]
+                    sniff_data = sniff_data.loc[-PRE_FV_TIME_MS:trim_timestamp]
 
-                self.sniff[trial_number] = sniff_data
-                self.lick1[trial_number] = lick_1_timestamps
-                self.lick2[trial_number] = lick_2_timestamps
+                self.sniff[trial_name] = sniff_data
+                self.lick1[trial_name] = lick_1_timestamps
+                self.lick2[trial_name] = lick_2_timestamps
 
         except Exception as e:
             print('Error parsing licking and sniffing packets!')
@@ -182,8 +184,8 @@ class DewanH5:
     def _parse_trial_matrix(self):
         try:
             trial_matrix = self._file['Trials']
-            trial_names = list(self._file.keys())[:-1] # Not zero indexed
-            trial_names = np.arange(1, len(trial_names) + 1) # Reindex attributes to not be zero indexed
+            _trial_names = list(self._file.keys())[:-1] # Not zero indexed
+            #trial_names = np.arange(1, len(_trial_names) + 2) # Reindex attributes to not be zero indexed
 
             trial_matrix_attrs = trial_matrix.attrs
             table_col = [trial_matrix_attrs[key].astype(str) for key in trial_matrix_attrs.keys() if 'NAME' in key]
@@ -193,7 +195,7 @@ class DewanH5:
                 data_dict[col] = trial_matrix[col]
 
             trial_parameters = pd.DataFrame(data_dict)
-            trial_parameters.index = trial_names
+            trial_parameters.index = _trial_names
             trial_parameters = trial_parameters.rename(columns=TRIAL_PARAMETER_COLUMNS)
             self.trial_parameters = trial_parameters.map(lambda x: x.decode() if isinstance(x, bytes) else x)
             # Convert all the bytes to strings
@@ -204,18 +206,19 @@ class DewanH5:
             if three_missed_mask.sum() > 0:
                 self.three_missed = True
 
-
-            last_good_trial = self.trial_parameters.shape[0]  # By default, we won't trim anything
+            first_good_trial = self.trial_parameters.index[FIRST_GOOD_TRIAL]
+            last_good_trial = self.trial_parameters.index[-1]  # By default, we won't trim anything
 
             if self.three_missed: # We need to trim everything after three-missed
-                three_missed_index = self.trial_parameters[three_missed_mask].index.tolist()
-                last_good_trial = three_missed_index[0] - 2
+                three_missed_index = self.trial_parameters.loc[three_missed_mask].index
+                last_good_trial = three_missed_index[-2]
                 # The first 1 is the first trial after the third missed "Go" trial
                 # We also do not want the third missed "Go" trial, so we subtract two to get to the final trial
 
+            self.first_good_trial = first_good_trial
             self.last_good_trial = last_good_trial
             self._raw_trial_parameters = self.trial_parameters.copy()
-            self.trial_parameters = self.trial_parameters.iloc[FIRST_GOOD_TRIAL:last_good_trial]
+            self.trial_parameters = self.trial_parameters.loc[first_good_trial:last_good_trial]
         except TypeError as te:
             print('Error reading or parsing the trial parameters matrix!')
             raise te
