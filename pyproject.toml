@@ -5,7 +5,7 @@ build-backend = "setuptools.build_meta"
 
 [project]
 name = "dewan_h5"
-version = "1.1.0"
+version = "1.1.1"
 description = "Python package to load and parse H5 files in the Dewan Lab."
 readme = "README.md"
 requires-python = ">=3.12"
