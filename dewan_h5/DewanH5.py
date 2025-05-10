@@ -40,7 +40,8 @@ TRIAL_PARAMETER_COLUMNS = {
 
 class DewanH5:
 
-    def __init__(self, file_path: Union[None, Path, str], trim_trials: Union[None, bool]=True, suppress_errors: bool=False):
+    def __init__(self, file_path: Union[None, Path, str], trim_trials: Union[None, bool]=True,
+                 drop_early_lick_trials: Union[None, bool]=True, suppress_errors: bool=False):
 
         if isinstance(file_path, str):
             file_path = Path(file_path)
@@ -53,6 +54,7 @@ class DewanH5:
         self.file_name: str = file_path.name
         self.suppress_errors: bool = suppress_errors
         self.trim_trials: bool = trim_trials
+        self.drop_early_lick_trials: bool = drop_early_lick_trials
 
         self._file: Union[h5py.File, None] = None
 
@@ -141,6 +143,14 @@ class DewanH5:
                 lick_1_timestamps = self.hstack_or_none(raw_lick_1_timestamps[:])
                 lick_2_timestamps = self.hstack_or_none(raw_lick_2_timestamps[:])
 
+                if self.drop_early_lick_trials and lick_1_timestamps is not None:
+                    _diff = lick_1_timestamps[0] - timestamps[1]
+                    print(_diff)
+                    if _diff <= 0:
+                        print(f'{trial_name} has licks during the grace period!')
+                        continue
+
+
                 # Offset times by final valve on time
                 lick_1_timestamps = self.sub_or_none(lick_1_timestamps, fv_on_time)
                 lick_2_timestamps = self.sub_or_none(lick_2_timestamps, fv_on_time)
@@ -222,6 +232,11 @@ class DewanH5:
         except TypeError as te:
             print('Error reading or parsing the trial parameters matrix!')
             raise te
+
+
+    def _update_trial_numbers(self):
+        good_trials = list(self.sniff.keys())
+        self.trial_parameters = self.trial_parameters.loc[good_trials]
 
 
     def _parse_general_params(self):
@@ -333,9 +348,9 @@ class DewanH5:
         self._open()
         self._parse_trial_matrix()
         self._parse_packets()
+        self._update_trial_numbers()
         self._parse_general_params()
         self._set_time()
-
         self._calculate_performance()
         self._get_cheating_trials()
 
