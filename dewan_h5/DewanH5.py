@@ -17,6 +17,8 @@ from typing import Union
 FIRST_GOOD_TRIAL = 10  # We typically ignore the first ten trials
 PRE_FV_TIME_MS = 2000
 MS_PER_PACKET = 1 # (ms) 100 Samples / 1000ms
+EARLY_LICK_BUFFER_MS = 50 # (ms) amount of time before the grace period ends that we will allow early licking
+
 
 TRIAL_PARAMETER_COLUMNS = {
         'Odor': 'odor',
@@ -148,9 +150,6 @@ class DewanH5:
                 lick_1_timestamps = self.hstack_or_none(raw_lick_1_timestamps[:])
                 lick_2_timestamps = self.hstack_or_none(raw_lick_2_timestamps[:])
 
-
-
-
                 # Offset times by final valve on time
                 lick_1_timestamps = self.sub_or_none(lick_1_timestamps, fv_on_time)
                 lick_2_timestamps = self.sub_or_none(lick_2_timestamps, fv_on_time)
@@ -160,7 +159,8 @@ class DewanH5:
 
                 if self.drop_early_lick_trials and lick_1_timestamps is not None and len(lick_1_timestamps) > 0:
                     # _diff = lick_1_timestamps[0] - (fv_on_time + grace_period_ms)
-                    if lick_1_timestamps[0] < grace_period_ms:
+
+                    if lick_1_timestamps[0] < (grace_period_ms - EARLY_LICK_BUFFER_MS):
                         self.early_lick_trials.append(trial_name)
                         # print(f'{trial_name} has licks during the grace period!')
                         continue
@@ -216,7 +216,6 @@ class DewanH5:
             trial_parameters = trial_parameters.rename(columns=TRIAL_PARAMETER_COLUMNS)
             self.trial_parameters = trial_parameters.map(lambda x: x.decode() if isinstance(x, bytes) else x)
             # Convert all the bytes to strings
-
             # See if three-missed was triggered
             three_missed_mask = self.trial_parameters['three_missed'] == 1
 
@@ -264,7 +263,8 @@ class DewanH5:
         good_trials = list(self.sniff.keys())
         self.trial_parameters = self.trial_parameters.loc[good_trials]
         self.total_trials = self.trial_parameters.shape[0]
-        warnings.warn(f'No good trials found!')
+        if self.total_trials == 0:
+            warnings.warn(f'No good trials found!')
 
 
     def _set_time(self):
