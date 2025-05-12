@@ -41,7 +41,7 @@ TRIAL_PARAMETER_COLUMNS = {
 class DewanH5:
 
     def __init__(self, file_path: Union[None, Path, str], trim_trials: Union[None, bool]=True,
-                 drop_early_lick_trials: Union[None, bool]=True, suppress_errors: bool=False):
+                 drop_early_lick_trials: Union[None, bool]=True, parse_only:bool=False, suppress_errors: bool=False):
 
         if isinstance(file_path, str):
             file_path = Path(file_path)
@@ -55,6 +55,7 @@ class DewanH5:
         self.suppress_errors: bool = suppress_errors
         self.trim_trials: bool = trim_trials
         self.drop_early_lick_trials: bool = drop_early_lick_trials
+        self.parse_only: bool = parse_only
 
         self._file: Union[h5py.File, None] = None
 
@@ -240,11 +241,6 @@ class DewanH5:
             raise te
 
 
-    def _update_trial_numbers(self):
-        good_trials = list(self.sniff.keys())
-        self.trial_parameters = self.trial_parameters.loc[good_trials]
-
-
     def _parse_general_params(self):
         try:
             _rig = str(self.trial_parameters['rig'].values[0])
@@ -258,10 +254,17 @@ class DewanH5:
             self.odors = self.trial_parameters['odor'].unique()
             self.concentrations = self.trial_parameters['concentration'].unique()
             self.mouse = self.trial_parameters['mouse'].values[0]
-            self.total_trials = self.trial_parameters.shape[0]
+            # self.total_trials = self.trial_parameters.shape[0]
         except Exception as e:
             print('Error when parsing general experiment parameters!')
             raise e
+
+
+    def _update_trial_numbers(self):
+        good_trials = list(self.sniff.keys())
+        self.trial_parameters = self.trial_parameters.loc[good_trials]
+        self.total_trials = self.trial_parameters.shape[0]
+        warnings.warn(f'No good trials found!')
 
 
     def _set_time(self):
@@ -354,11 +357,12 @@ class DewanH5:
         self._open()
         self._parse_trial_matrix()
         self._parse_packets()
-        self._update_trial_numbers()
         self._parse_general_params()
+        self._update_trial_numbers()
         self._set_time()
-        self._calculate_performance()
-        self._get_cheating_trials()
+        if self.parse_only:
+            self._calculate_performance()
+            self._get_cheating_trials()
 
         return self
 
