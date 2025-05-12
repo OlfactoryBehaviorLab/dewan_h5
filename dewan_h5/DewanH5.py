@@ -264,7 +264,7 @@ class DewanH5:
         self.trial_parameters = self.trial_parameters.loc[good_trials]
         self.total_trials = self.trial_parameters.shape[0]
         if self.total_trials == 0:
-            warnings.warn(f'No good trials found!')
+            warnings.warn(f'No good trials found for {self.file_path}!')
 
 
     def _set_time(self):
