@@ -78,6 +78,9 @@ class DewanH5:
         self.did_cheat: bool = False
         self.cheat_check_trials: list[int] = []
 
+        self.early_lick_trials: list = []
+        self.num_initial_trials: int = 0
+
         # Data Containers
         self.trial_parameters: pd.DataFrame = None
         self.sniff: dict[int, pd.Series] = {}
@@ -97,7 +100,7 @@ class DewanH5:
             prev_trial_name = trial_names[FIRST_GOOD_TRIAL-1]
             current_trial_names = self.trial_parameters.index.values
             prev_trial_names = np.hstack((prev_trial_name, current_trial_names[:-1]))
-
+            self.num_initial_trials = len(current_trial_names)
             trial_pairs = zip(current_trial_names, prev_trial_names)
             shortest_ITI = self.trial_parameters['iti_ms'].min()
 
@@ -108,13 +111,14 @@ class DewanH5:
             fv_times = self.trial_parameters['fv_on_time_ms'].astype(int)
             start_times = self.trial_parameters['trial_start_ms'].astype(int)
             all_end_times = self.trial_parameters['trial_end_ms'].astype(int)
+            grace_period = self.trial_parameters['grace_period_ms'].astype(int)
             trial_durations = all_end_times - start_times
 
             # Loop through the pairs of trials; trial_pairs will be from FIRST_GOOD_TRIAL -> last good trial
             for index, (trial_name, prev_trial_name) in enumerate(trial_pairs):
                 timestamps = []
-                #trial_number = int(trial_name[5:])
                 fv_on_time = fv_times[trial_name]
+                grace_period_ms = grace_period[trial_name]
 
                 trial_packet = self._file[trial_name]
                 sniff_events = trial_packet['Events']
@@ -143,12 +147,7 @@ class DewanH5:
                 lick_1_timestamps = self.hstack_or_none(raw_lick_1_timestamps[:])
                 lick_2_timestamps = self.hstack_or_none(raw_lick_2_timestamps[:])
 
-                if self.drop_early_lick_trials and lick_1_timestamps is not None:
-                    _diff = lick_1_timestamps[0] - timestamps[1]
-                    print(_diff)
-                    if _diff <= 0:
-                        print(f'{trial_name} has licks during the grace period!')
-                        continue
+
 
 
                 # Offset times by final valve on time
@@ -157,6 +156,13 @@ class DewanH5:
                 fv_offset_timestamps = self.sub_or_none(timestamps, fv_on_time)
                 earliest_timestamp = int(fv_offset_timestamps[0])
                 earliest_timestamp_magnitude = abs(earliest_timestamp)
+
+                if self.drop_early_lick_trials and lick_1_timestamps is not None and len(lick_1_timestamps) > 0:
+                    # _diff = lick_1_timestamps[0] - (fv_on_time + grace_period_ms)
+                    if lick_1_timestamps[0] < grace_period_ms:
+                        self.early_lick_trials.append(trial_name)
+                        # print(f'{trial_name} has licks during the grace period!')
+                        continue
 
                 # If there is not enough pre-FV time, we need to fill in some data from the previous trial
                 if earliest_timestamp_magnitude < shortest_ITI:
