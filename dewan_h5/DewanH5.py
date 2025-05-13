@@ -69,7 +69,7 @@ class DewanH5:
 
         # Odor information
         self.odors: list[str] = []
-        self.concentrations: list[float] = []
+        self.concentration: float = 0.0
 
         # Performance Values
         self.total_trials: int = 0
@@ -251,9 +251,15 @@ class DewanH5:
             # Remove spaces if they exist from the rig name
 
             self.odors = self.trial_parameters['odor'].unique()
-            self.concentrations = self.trial_parameters['concentration'].unique()
             self.mouse = self.trial_parameters['mouse'].values[0]
-            # self.total_trials = self.trial_parameters.shape[0]
+
+            # For the blank experiments, the only concentration is zero
+            _concentrations = self.trial_parameters['concentration'].unique()
+            if len(_concentrations) == 1:
+                self.concentration = _concentrations[0]
+            else:
+                self.concentration = _concentrations[_concentrations > 0][0]
+
         except Exception as e:
             print('Error when parsing general experiment parameters!')
             raise e
