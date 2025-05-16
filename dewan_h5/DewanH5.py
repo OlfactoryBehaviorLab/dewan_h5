@@ -105,6 +105,7 @@ class DewanH5:
             prev_trial_names = np.hstack((prev_trial_name, current_trial_names[:-1]))
             self.num_initial_trials = len(current_trial_names)
             trial_pairs = zip(current_trial_names, prev_trial_names)
+
             shortest_ITI = self.trial_parameters['iti_ms'].min()
 
             if shortest_ITI > PRE_FV_TIME_MS:
@@ -154,13 +155,14 @@ class DewanH5:
                 lick_1_timestamps = self.sub_or_none(lick_1_timestamps, fv_on_time)
                 lick_2_timestamps = self.sub_or_none(lick_2_timestamps, fv_on_time)
                 fv_offset_timestamps = self.sub_or_none(timestamps, fv_on_time)
+
                 earliest_timestamp = int(fv_offset_timestamps[0])
                 earliest_timestamp_magnitude = abs(earliest_timestamp)
 
                 if self.drop_early_lick_trials and lick_1_timestamps is not None and len(lick_1_timestamps) > 0:
                     # _diff = lick_1_timestamps[0] - (fv_on_time + grace_period_ms)
 
-                    if lick_1_timestamps[0] < (grace_period_ms - EARLY_LICK_BUFFER_MS):
+                    if (grace_period_ms - EARLY_LICK_BUFFER_MS) > lick_1_timestamps[0] >= 0:
                         self.early_lick_trials.append(trial_name)
                         # print(f'{trial_name} has licks during the grace period!')
                         continue
