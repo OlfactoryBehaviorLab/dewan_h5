@@ -18,7 +18,7 @@ FIRST_GOOD_TRIAL = 10  # We typically ignore the first ten trials
 PRE_FV_TIME_MS = 2000
 MS_PER_PACKET = 1 # (ms) 100 Samples / 1000ms
 EARLY_LICK_BUFFER_MS = 50 # (ms) amount of time before the grace period ends that we will allow early licking
-
+MISSING_DATA_THRESHOLD = 50 # (ms) number of ms allowed between two contiguous packets
 
 TRIAL_PARAMETER_COLUMNS = {
         'Odor': 'odor',
@@ -43,7 +43,7 @@ TRIAL_PARAMETER_COLUMNS = {
 class DewanH5:
 
     def __init__(self, file_path: Union[None, Path, str], trim_trials: Union[None, bool]=True,
-                 drop_early_lick_trials: Union[None, bool]=True, parse_only:bool=False, suppress_errors: bool=False):
+                 drop_early_lick_trials: Union[None, bool]=True, parse_only:bool=False, check_missing_packets=True, suppress_errors: bool=False):
 
         if isinstance(file_path, str):
             file_path = Path(file_path)
@@ -58,6 +58,7 @@ class DewanH5:
         self.trim_trials: bool = trim_trials
         self.drop_early_lick_trials: bool = drop_early_lick_trials
         self.parse_only: bool = parse_only
+        self.check_missing_packets = check_missing_packets
 
         self._file: Union[h5py.File, None] = None
 
@@ -82,6 +83,7 @@ class DewanH5:
         self.cheat_check_trials: list[int] = []
 
         self.early_lick_trials: list = []
+        self.missing_packet_trials: list = []
         self.num_initial_trials: int = 0
 
         # Data Containers
@@ -191,6 +193,13 @@ class DewanH5:
                     trim_timestamp = trial_durations[trial_name]
                     sniff_data = sniff_data.loc[-PRE_FV_TIME_MS:trim_timestamp]
 
+                if self.check_missing_packets:
+                    timestamp_diffs = np.diff(sniff_data.index)
+                    if np.any(timestamp_diffs >= MISSING_DATA_THRESHOLD):
+                        print(f'{trial_name} appears to be missing packets!')
+                        self.missing_packet_trials.append(trial_name)
+                        continue
+
                 self.sniff[trial_name] = sniff_data
                 self.lick1[trial_name] = lick_1_timestamps
                 self.lick2[trial_name] = lick_2_timestamps
@@ -261,6 +270,10 @@ class DewanH5:
                 self.concentration = _concentrations[0]
             else:
                 self.concentration = _concentrations[_concentrations > 0][0]
+            print(self.file_path)
+            print(f'Pre Round: {self.concentration}')
+            self.concentration = np.format_float_scientific(self.concentration, 1)
+            print(f'Post Round: {self.concentration}')
 
         except Exception as e:
             print('Error when parsing general experiment parameters!')
@@ -395,6 +408,7 @@ class DewanH5:
                 f'Experiment Date: {self.date}\n'
                 f'Experiment Time: {self.time}\n'
                 f'Rig: {self.rig}\n'
+                f'Concentration(s): {self.concentration}\n'
                 f'Total Trials: {self.total_trials}\n')
 
 
