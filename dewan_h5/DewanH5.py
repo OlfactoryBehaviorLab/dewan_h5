@@ -17,7 +17,7 @@ from typing import Union
 FIRST_GOOD_TRIAL = 10  # We typically ignore the first ten trials
 PRE_FV_TIME_MS = 2000
 MS_PER_PACKET = 1 # (ms) 100 Samples / 1000ms
-EARLY_LICK_BUFFER_MS = 50 # (ms) amount of time before the grace period ends that we will allow early licking
+EARLY_LICK_BUFFER_MS = 0 # (ms) amount of time before the grace period ends that we will allow early licking
 MISSING_DATA_THRESHOLD = 50 # (ms) number of ms allowed between two contiguous packets
 
 TRIAL_PARAMETER_COLUMNS = {
@@ -86,6 +86,8 @@ class DewanH5:
         self.missing_packet_trials: list = []
         self.num_initial_trials: int = 0
 
+        self.response_latencies: dict = {}
+
         # Data Containers
         self.trial_parameters: pd.DataFrame = None
         self.sniff: dict[int, pd.Series] = {}
@@ -145,6 +147,7 @@ class DewanH5:
                     start_time = end_time - elapsed_time
                     ts = np.linspace(start_time, end_time, num_samples, endpoint=False)
                     timestamps.extend(ts)
+
                 timestamps = np.array(timestamps)
 
                 # Stack all samples together
@@ -163,7 +166,6 @@ class DewanH5:
 
                 if self.drop_early_lick_trials and lick_1_timestamps is not None and len(lick_1_timestamps) > 0:
                     # _diff = lick_1_timestamps[0] - (fv_on_time + grace_period_ms)
-
                     if (grace_period_ms - EARLY_LICK_BUFFER_MS) > lick_1_timestamps[0] >= 0:
                         self.early_lick_trials.append(trial_name)
                         # print(f'{trial_name} has licks during the grace period!')
@@ -288,6 +290,14 @@ class DewanH5:
             warnings.warn(f'No good trials found for {self.file_path}!')
 
 
+    def _get_response_delays(self):
+
+        for trial in self.trial_parameters.index:
+            trial_licks = np.array(self.lick1[trial])
+            delay = trial_licks[trial_licks > 0][0]
+            self.response_latencies[trial] = delay
+
+
     def _set_time(self):
         try:
             file_time = self._file.attrs['start_date']
@@ -380,6 +390,8 @@ class DewanH5:
         self._parse_packets()
         self._parse_general_params()
         self._update_trial_numbers()
+        self._get_response_delays()
+
         self._set_time()
         if self.parse_only:
             self._calculate_performance()
