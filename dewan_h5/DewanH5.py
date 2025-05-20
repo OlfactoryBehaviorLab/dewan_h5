@@ -294,8 +294,11 @@ class DewanH5:
 
         for trial in self.trial_parameters.index:
             trial_licks = np.array(self.lick1[trial])
-            delay = trial_licks[trial_licks > 0][0]
-            self.response_latencies[trial] = delay
+            delay = trial_licks[trial_licks > 0]
+            if len(delay) > 0:
+                self.response_latencies[trial] = delay
+            else:
+                self.response_latencies[trial] = -1
 
 
     def _set_time(self):
