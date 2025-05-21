@@ -19,7 +19,6 @@ PRE_FV_TIME_MS = 2000
 MS_PER_PACKET = 1 # (ms) 100 Samples / 1000ms
 EARLY_LICK_BUFFER_MS = 0 # (ms) amount of time before the grace period ends that we will allow early licking
 MISSING_DATA_THRESHOLD = 50 # (ms) number of ms allowed between two contiguous packets
-
 TRIAL_PARAMETER_COLUMNS = {
         'Odor': 'odor',
         'fvdur' : 'fv_duration_ms',
@@ -84,6 +83,7 @@ class DewanH5:
 
         self.early_lick_trials: list = []
         self.missing_packet_trials: list = []
+        self.short_trials: list = []
         self.num_initial_trials: int = 0
 
         self.response_latencies: dict = {}
@@ -163,6 +163,11 @@ class DewanH5:
 
                 earliest_timestamp = int(fv_offset_timestamps[0])
                 earliest_timestamp_magnitude = abs(earliest_timestamp)
+
+                if fv_offset_timestamps[-1] < grace_period_ms:
+                    self.short_trials.append(trial_name)
+                    print(f'{trial_name} ends before the grace period!')
+                    continue
 
                 if self.drop_early_lick_trials and lick_1_timestamps is not None and len(lick_1_timestamps) > 0:
                     # _diff = lick_1_timestamps[0] - (fv_on_time + grace_period_ms)
