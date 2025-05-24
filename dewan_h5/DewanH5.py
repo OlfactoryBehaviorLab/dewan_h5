@@ -278,9 +278,7 @@ class DewanH5:
             else:
                 self.concentration = _concentrations[_concentrations > 0][0]
             print(self.file_path)
-            print(f'Pre Round: {self.concentration}')
             self.concentration = np.format_float_scientific(self.concentration, 1)
-            print(f'Post Round: {self.concentration}')
 
         except Exception as e:
             print('Error when parsing general experiment parameters!')
