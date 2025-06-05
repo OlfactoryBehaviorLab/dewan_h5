@@ -96,7 +96,7 @@ select = [
     "N",
     "PERF",
 ]
-ignore = ["COM812"]
+ignore = ["COM812", "N806", "E501"]
 
 # Allow fix for all enabled rules (when `--fix`) is provided.
 fixable = []

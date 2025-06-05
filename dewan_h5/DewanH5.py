@@ -1,3 +1,4 @@
+# noqa: N999
 """
 Dewan Lab H5 Parsing Library
 Author: Austin Pauley (pauley@psy.fsu.edu)
@@ -110,10 +111,10 @@ class DewanH5:
         try:
             trial_names = list(self._file.keys())[:-1]  # Not zero indexed
             prev_trial_name = trial_names[FIRST_GOOD_TRIAL - 1]
-            current_trial_names = self.trial_parameters.index.values
+            current_trial_names = self.trial_parameters.index.to_numpy()
             prev_trial_names = np.hstack((prev_trial_name, current_trial_names[:-1]))
             self.num_initial_trials = len(current_trial_names)
-            trial_pairs = zip(current_trial_names, prev_trial_names)
+            trial_pairs = zip(current_trial_names, prev_trial_names, strict=True)
 
             shortest_ITI = self.trial_parameters["iti_ms"].min()
 
@@ -128,7 +129,7 @@ class DewanH5:
             trial_durations = all_end_times - start_times
 
             # Loop through the pairs of trials; trial_pairs will be from FIRST_GOOD_TRIAL -> last good trial
-            for index, (trial_name, prev_trial_name) in enumerate(trial_pairs):
+            for _, (trial_name, prev_trial_name) in enumerate(trial_pairs):
                 timestamps = []
                 fv_on_time = fv_times[trial_name]
                 grace_period_ms = grace_period[trial_name]
@@ -147,7 +148,7 @@ class DewanH5:
                 end_times = events["packet_sent_time"]
                 steps = events["sniff_samples"]
 
-                for end_time, num_samples in zip(end_times, steps):
+                for end_time, num_samples in zip(end_times, steps, strict=True):
                     elapsed_time = num_samples * MS_PER_PACKET
                     start_time = end_time - elapsed_time
                     ts = np.linspace(start_time, end_time, num_samples, endpoint=False)
@@ -174,17 +175,10 @@ class DewanH5:
                     print(f"{trial_name} ends before the grace period!")
                     continue
 
-                if (
-                    self.drop_early_lick_trials
-                    and lick_1_timestamps is not None
-                    and len(lick_1_timestamps) > 0
-                ):
+                # noqa: SIM102
+                if self.drop_early_lick_trials and lick_1_timestamps is not None and len(lick_1_timestamps) > 0: # noqa: SIM102
                     # _diff = lick_1_timestamps[0] - (fv_on_time + grace_period_ms)
-                    if (
-                        (grace_period_ms - EARLY_LICK_BUFFER_MS)
-                        > lick_1_timestamps[0]
-                        >= 0
-                    ):
+                    if (grace_period_ms - EARLY_LICK_BUFFER_MS) > lick_1_timestamps[0] >= 0: # noqa: SIM102
                         self.early_lick_trials.append(trial_name)
                         # print(f'{trial_name} has licks during the grace period!')
                         continue
@@ -246,11 +240,7 @@ class DewanH5:
             # trial_names = np.arange(1, len(_trial_names) + 2) # Reindex attributes to not be zero indexed
 
             trial_matrix_attrs = trial_matrix.attrs
-            table_col = [
-                trial_matrix_attrs[key].astype(str)
-                for key in trial_matrix_attrs.keys()
-                if "NAME" in key
-            ]
+            table_col = [trial_matrix_attrs[key].astype(str) for key in trial_matrix_attrs if "NAME" in key]
             data_dict = {}
 
             for col in table_col:
@@ -292,7 +282,7 @@ class DewanH5:
 
     def _parse_general_params(self):
         try:
-            _rig = str(self.trial_parameters["rig"].values[0])
+            _rig = str(self.trial_parameters["rig"].to_numpy()[0])
             _rig = _rig.split(" ")
             if len(_rig) > 1:
                 self.rig = "-".join(_rig)
@@ -301,7 +291,7 @@ class DewanH5:
             # Remove spaces if they exist from the rig name
 
             self.odors = self.trial_parameters["odor"].unique()
-            self.mouse = self.trial_parameters["mouse"].values[0]
+            self.mouse = self.trial_parameters["mouse"].to_numpy()[0]
 
             # For the blank experiments, the only concentration is zero
             _concentrations = self.trial_parameters["concentration"].unique()
@@ -321,7 +311,7 @@ class DewanH5:
         self.trial_parameters = self.trial_parameters.loc[good_trials]
         self.total_trials = self.trial_parameters.shape[0]
         if self.total_trials == 0:
-            warnings.warn(f"No good trials found for {self.file_path}!")
+            warnings.warn(f"No good trials found for {self.file_path}!", stacklevel=2)
 
     def _get_response_delays(self):
         for trial in self.trial_parameters.index:
@@ -410,7 +400,8 @@ class DewanH5:
     def debug_enter(self):
         warnings.warn(
             "Using DewanH5 outside of a context manager is NOT recommended! "
-            "You must manually close the file reference using the close() method before deleting this instance!"
+            "You must manually close the file reference using the close() method before deleting this instance!",
+            stacklevel=2
         )
 
         return self.__enter__()
@@ -445,10 +436,8 @@ class DewanH5:
             if self.suppress_errors:
                 print("Error opening H5 File!")
                 return True
-            else:
-                return False
-        else:
-            return True
+            return False
+        return True
 
     def __str__(self):
         return (
@@ -482,5 +471,5 @@ class DewanH5:
     def sub_or_none(data, val):
         if data is not None:
             return data - val
-        else:
-            return []
+
+        return []
