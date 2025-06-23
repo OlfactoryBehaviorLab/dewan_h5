@@ -47,8 +47,9 @@ class DewanH5:
         file_path: Union[None, Path, str],
         trim_trials: Union[None, bool] = True,
         drop_early_lick_trials: Union[None, bool] = True,
+        drop_cheating_trials: Union[None, bool] = True,
         parse_only: bool = False,
-        check_missing_packets=True,
+        check_missing_packets: bool =True,
         suppress_errors: bool = False,
     ):
         if isinstance(file_path, str):
@@ -65,6 +66,7 @@ class DewanH5:
         self.drop_early_lick_trials: bool = drop_early_lick_trials
         self.parse_only: bool = parse_only
         self.check_missing_packets = check_missing_packets
+        self.drop_cheating_trials = drop_cheating_trials
 
         self._file: Union[h5py.File, None] = None
 
@@ -86,20 +88,22 @@ class DewanH5:
         self.three_missed: bool = False
         self.last_good_trial: int = 0
         self.did_cheat: bool = False
-        self.cheat_check_trials: list[int] = []
+        self.cheat_check_trials: list[str] = []
 
         self.early_lick_trials: list = []
         self.missing_packet_trials: list = []
         self.short_trials: list = []
         self.num_initial_trials: int = 0
 
-        self.response_latencies: dict = {}
+        self.good_trials: list[str] = []
+
+        self.response_latencies: dict[str, np.ndarray] = {}
 
         # Data Containers
         self.trial_parameters: pd.DataFrame = None
-        self.sniff: dict[int, pd.Series] = {}
-        self.lick1: dict[int, list] = {}
-        self.lick2: dict[int, list] = {}
+        self.sniff: dict[str, pd.Series] = {}
+        self.lick1: dict[str, list] = {}
+        self.lick2: dict[str, list] = {}
 
         # Raw Data
         self._raw_trial_parameters: pd.DataFrame = None
@@ -299,7 +303,6 @@ class DewanH5:
                 self.concentration = _concentrations[0]
             else:
                 self.concentration = _concentrations[_concentrations > 0][0]
-            print(self.file_path)
             self.concentration = np.format_float_scientific(self.concentration, 1)
 
         except Exception as e:
@@ -307,9 +310,12 @@ class DewanH5:
             raise e
 
     def _update_trial_numbers(self):
-        good_trials = list(self.sniff.keys())
+        good_sniff_trials = list(self.sniff.keys())
+        good_trials = np.setdiff1d(good_sniff_trials, self.cheat_check_trials, assume_unique=True)  # Remove cheat check trials
         self.trial_parameters = self.trial_parameters.loc[good_trials]
+        self.sniff = {trial: self.sniff[trial] for trial in good_trials}
         self.total_trials = self.trial_parameters.shape[0]
+        self.good_trials = good_trials
         if self.total_trials == 0:
             warnings.warn(f"No good trials found for {self.file_path}!", stacklevel=2)
 
@@ -363,7 +369,7 @@ class DewanH5:
         if num_cheating_trials > 0:
             self.did_cheat = True
 
-        self.cheat_check_trials = cheat_check_trials
+        self.cheat_check_trials = cheat_check_trials.index
 
     def _open(self):
         try:
@@ -418,13 +424,16 @@ class DewanH5:
         self._parse_trial_matrix()
         self._parse_packets()
         self._parse_general_params()
+
+        if self.drop_cheating_trials:
+            self._get_cheating_trials()
+
         self._update_trial_numbers()
         self._get_response_delays()
-
         self._set_time()
-        if self.parse_only:
+
+        if not self.parse_only:
             self._calculate_performance()
-            self._get_cheating_trials()
 
         return self
 
