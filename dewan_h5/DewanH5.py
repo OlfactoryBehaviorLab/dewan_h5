@@ -49,7 +49,7 @@ class DewanH5:
         drop_early_lick_trials: Union[None, bool] = True,
         drop_cheating_trials: Union[None, bool] = True,
         parse_only: bool = False,
-        check_missing_packets: bool =True,
+        check_missing_packets: bool = True,
         suppress_errors: bool = False,
     ):
         if isinstance(file_path, str):
@@ -180,9 +180,17 @@ class DewanH5:
                     continue
 
                 # noqa: SIM102
-                if self.drop_early_lick_trials and lick_1_timestamps is not None and len(lick_1_timestamps) > 0: # noqa: SIM102
+                if (
+                    self.drop_early_lick_trials
+                    and lick_1_timestamps is not None
+                    and len(lick_1_timestamps) > 0
+                ):  # noqa: SIM102
                     # _diff = lick_1_timestamps[0] - (fv_on_time + grace_period_ms)
-                    if (grace_period_ms - EARLY_LICK_BUFFER_MS) > lick_1_timestamps[0] >= 0: # noqa: SIM102
+                    if (
+                        (grace_period_ms - EARLY_LICK_BUFFER_MS)
+                        > lick_1_timestamps[0]
+                        >= 0
+                    ):  # noqa: SIM102
                         self.early_lick_trials.append(trial_name)
                         # print(f'{trial_name} has licks during the grace period!')
                         continue
@@ -244,7 +252,11 @@ class DewanH5:
             # trial_names = np.arange(1, len(_trial_names) + 2) # Reindex attributes to not be zero indexed
 
             trial_matrix_attrs = trial_matrix.attrs
-            table_col = [trial_matrix_attrs[key].astype(str) for key in trial_matrix_attrs if "NAME" in key]
+            table_col = [
+                trial_matrix_attrs[key].astype(str)
+                for key in trial_matrix_attrs
+                if "NAME" in key
+            ]
             data_dict = {}
 
             for col in table_col:
@@ -311,7 +323,9 @@ class DewanH5:
 
     def _update_trial_numbers(self):
         good_sniff_trials = list(self.sniff.keys())
-        good_trials = np.setdiff1d(good_sniff_trials, self.cheat_check_trials, assume_unique=True)  # Remove cheat check trials
+        good_trials = np.setdiff1d(
+            good_sniff_trials, self.cheat_check_trials, assume_unique=True
+        )  # Remove cheat check trials
         self.trial_parameters = self.trial_parameters.loc[good_trials]
         self.sniff = {trial: self.sniff[trial] for trial in good_trials}
         self.total_trials = self.trial_parameters.shape[0]
@@ -407,7 +421,7 @@ class DewanH5:
         warnings.warn(
             "Using DewanH5 outside of a context manager is NOT recommended! "
             "You must manually close the file reference using the close() method before deleting this instance!",
-            stacklevel=2
+            stacklevel=2,
         )
 
         return self.__enter__()
