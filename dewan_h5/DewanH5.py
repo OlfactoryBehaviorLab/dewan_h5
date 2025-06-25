@@ -65,8 +65,8 @@ class DewanH5:
         self.trim_trials: bool = trim_trials
         self.drop_early_lick_trials: bool = drop_early_lick_trials
         self.parse_only: bool = parse_only
-        self.check_missing_packets = check_missing_packets
-        self.drop_cheating_trials = drop_cheating_trials
+        self.check_missing_packets: bool = check_missing_packets
+        self.drop_cheating_trials: bool = drop_cheating_trials
 
         self._file: Union[h5py.File, None] = None
 
@@ -90,9 +90,11 @@ class DewanH5:
         self.did_cheat: bool = False
         self.cheat_check_trials: list[str] = []
 
-        self.early_lick_trials: list = []
-        self.missing_packet_trials: list = []
-        self.short_trials: list = []
+        # Excluded Trials
+        self.early_lick_trials: list[str] = []
+        self.missing_packet_trials: list[str] = []
+        self.short_trials: list[str] = []
+        self.zero_trials: list[str] = []
         self.num_initial_trials: int = 0
 
         self.good_trials: list[str] = []
@@ -179,20 +181,17 @@ class DewanH5:
                     print(f"{trial_name} ends before the grace period!")
                     continue
 
-                # noqa: SIM102
-                if (
+                if (  # noqa: SIM102
                     self.drop_early_lick_trials
                     and lick_1_timestamps is not None
                     and len(lick_1_timestamps) > 0
                 ):  # noqa: SIM102
-                    # _diff = lick_1_timestamps[0] - (fv_on_time + grace_period_ms)
                     if (
                         (grace_period_ms - EARLY_LICK_BUFFER_MS)
                         > lick_1_timestamps[0]
                         >= 0
-                    ):  # noqa: SIM102
+                    ):
                         self.early_lick_trials.append(trial_name)
-                        # print(f'{trial_name} has licks during the grace period!')
                         continue
 
                 # If there is not enough pre-FV time, we need to fill in some data from the previous trial
@@ -249,7 +248,6 @@ class DewanH5:
         try:
             trial_matrix = self._file["Trials"]
             _trial_names = list(self._file.keys())[:-1]  # Not zero indexed
-            # trial_names = np.arange(1, len(_trial_names) + 2) # Reindex attributes to not be zero indexed
 
             trial_matrix_attrs = trial_matrix.attrs
             table_col = [
