@@ -284,7 +284,7 @@ class DewanH5:
                 # The first 1 is the first trial after the third missed "Go" trial
                 # We also do not want the third missed "Go" trial, so we subtract two to get to the final trial
 
-            zero_trials_mask = self.trial_parameters['trial_types'] == 0
+            zero_trials_mask = self.trial_parameters['trial_type'] == 0
             self.zero_trials = self.trial_parameters.index[zero_trials_mask]
             self._raw_trial_parameters = self.trial_parameters.copy()
             self.trial_parameters = self.trial_parameters.loc[
