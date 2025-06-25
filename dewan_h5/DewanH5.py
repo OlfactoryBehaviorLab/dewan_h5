@@ -286,8 +286,8 @@ class DewanH5:
                 # The first 1 is the first trial after the third missed "Go" trial
                 # We also do not want the third missed "Go" trial, so we subtract two to get to the final trial
 
-            self.first_good_trial = first_good_trial
-            self.last_good_trial = last_good_trial
+            zero_trials_mask = self.trial_parameters['trial_types'] == 0
+            self.zero_trials = self.trial_parameters.index[zero_trials_mask]
             self._raw_trial_parameters = self.trial_parameters.copy()
             self.trial_parameters = self.trial_parameters.loc[
                 first_good_trial:last_good_trial
@@ -323,9 +323,14 @@ class DewanH5:
 
     def _update_trial_numbers(self):
         good_sniff_trials = list(self.sniff.keys())
+        # This list already excludes early_sniff, missing_packet, and short_trials
         good_trials = np.setdiff1d(
             good_sniff_trials, self.cheat_check_trials, assume_unique=True
         )  # Remove cheat check trials
+        good_trials = np.setdiff1d(
+            good_trials, self.zero_trials, assume_unique=True
+        ) # Remove type 0 trials
+
         self.trial_parameters = self.trial_parameters.loc[good_trials]
         self.sniff = {trial: self.sniff[trial] for trial in good_trials}
         self.total_trials = self.trial_parameters.shape[0]
