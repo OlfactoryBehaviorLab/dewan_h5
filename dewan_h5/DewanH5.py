@@ -132,7 +132,7 @@ class DewanH5:
             start_times = self.trial_parameters["trial_start_ms"].astype(int)
             all_end_times = self.trial_parameters["trial_end_ms"].astype(int)
             grace_period = self.trial_parameters["grace_period_ms"].astype(int)
-            trial_durations = all_end_times - start_times
+            self.trial_durations = all_end_times - start_times
 
             # Loop through the pairs of trials; trial_pairs will be from FIRST_GOOD_TRIAL -> last good trial
             for _, (trial_name, prev_trial_name) in enumerate(trial_pairs):
@@ -226,7 +226,7 @@ class DewanH5:
 
                 # If trimming the trials, we only want PRE_FV_TIME_MS -> trial_duration (end - start)
                 if self.trim_trials:
-                    trim_timestamp = trial_durations[trial_name]
+                    trim_timestamp = self.trial_durations[trial_name]
                     sniff_data = sniff_data.loc[-PRE_FV_TIME_MS:trim_timestamp]
 
                 if self.check_missing_packets:
@@ -332,6 +332,7 @@ class DewanH5:
         self.trial_parameters = self.trial_parameters.loc[good_trials]
         self.sniff = {trial: self.sniff[trial] for trial in good_trials}
         self.total_trials = self.trial_parameters.shape[0]
+        self.trial_durations = self.trial_durations[good_trials]
         self.good_trials = good_trials
         if self.total_trials == 0:
             warnings.warn(f"No good trials found for {self.file_path}!", stacklevel=2)
