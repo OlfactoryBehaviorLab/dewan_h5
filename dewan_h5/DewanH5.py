@@ -221,6 +221,11 @@ class DewanH5:
                     )
                     pretrial_frames = prev_sniff_samples[-num_pretrial_frames:]
 
+                    if len(pretrial_frames) != len(fill_ts):
+                        logger.error(" Not enough pretrial frames to fill trial %s. Skipping trial...", trial_name)
+                        self.missing_packet_trials.append(trial_name)
+                        continue
+
                     # Add frames from previous ITI to the beginning to get our full preFV time
                     filled_sniff_samples = np.hstack([pretrial_frames, sniff_samples])
                     filled_timestamps = np.hstack([fill_ts, fv_offset_timestamps])
