@@ -72,6 +72,7 @@ class DewanH5:
         self.drop_cheating_trials: bool = drop_cheating_trials
 
         self._file: Union[h5py.File, None] = None
+        self.instantiated = False
 
         # General parameters from H5 File
         self.date: str = "None Specified"
@@ -456,7 +457,7 @@ class DewanH5:
         self._update_trial_numbers()
         self._get_response_delays()
         self._set_time()
-
+        self.instantiated = True
         if not self.parse_only:
             self._calculate_performance()
 
@@ -474,14 +475,19 @@ class DewanH5:
         return True
 
     def __str__(self):
+        if self.instantiated:
+            return (
+                f"Dewan Lab H5 file: {self.file_path.name}\n"
+                f"Mouse: {self.mouse}\n"
+                f"Experiment Date: {self.date}\n"
+                f"Experiment Time: {self.time}\n"
+                f"Rig: {self.rig}\n"
+                f"Concentration(s): {self.concentration}\n"
+                f"Total Trials: {self.total_trials}\n"
+            )
         return (
             f"Dewan Lab H5 file: {self.file_path.name}\n"
-            f"Mouse: {self.mouse}\n"
-            f"Experiment Date: {self.date}\n"
-            f"Experiment Time: {self.time}\n"
-            f"Rig: {self.rig}\n"
-            f"Concentration(s): {self.concentration}\n"
-            f"Total Trials: {self.total_trials}\n"
+            f"Object created only; enter context to process..."
         )
 
     def __repr__(self):
