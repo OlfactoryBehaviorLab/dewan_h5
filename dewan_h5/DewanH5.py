@@ -5,6 +5,7 @@ Author: Austin Pauley (pauley@psy.fsu.edu)
 Date: 01-04-2025
 """
 
+import logging
 import warnings
 
 import h5py
@@ -40,6 +41,8 @@ TRIAL_PARAMETER_COLUMNS = {
     "fvOnTime": "fv_on_time_ms",
 }
 
+logging.basicConfig(level=logging.NOTSET)
+logger = logging.getLogger(__name__)
 
 class DewanH5:
     def __init__(
@@ -125,6 +128,7 @@ class DewanH5:
             shortest_ITI = self.trial_parameters["iti_ms"].min()
 
             if shortest_ITI > PRE_FV_TIME_MS:
+                logger.debug(" Our shortest ITI is larger than PRE_FV_TIME_MS. Trimming...")
                 shortest_ITI = PRE_FV_TIME_MS
 
             # Relevant Trial Parameters: These are already trimmed from FIRST_GOOD_TRIAL -> last good trial
@@ -135,6 +139,7 @@ class DewanH5:
             self.trial_durations = all_end_times - start_times
 
             # Loop through the pairs of trials; trial_pairs will be from FIRST_GOOD_TRIAL -> last good trial
+            logger.debug(" Looping through trial pairs...")
             for _, (trial_name, prev_trial_name) in enumerate(trial_pairs):
                 timestamps = []
                 fv_on_time = fv_times[trial_name]
@@ -178,7 +183,7 @@ class DewanH5:
 
                 if fv_offset_timestamps[-1] < grace_period_ms:
                     self.short_trials.append(trial_name)
-                    print(f"{trial_name} ends before the grace period!")
+                    logger.info(" %s ends before the grace period! Skipping...", trial_name)
                     continue
 
                 if (  # noqa: SIM102
@@ -186,11 +191,14 @@ class DewanH5:
                     and lick_1_timestamps is not None
                     and len(lick_1_timestamps) > 0
                 ):  # noqa: SIM102
+                    # First, check that we want to drop the early lick trials and that there are in fact licks for this trial
                     if (
                         (grace_period_ms - EARLY_LICK_BUFFER_MS)
                         > lick_1_timestamps[0]
                         >= 0
                     ):
+                        # Next, see if there are any time stamps between 0 and the early lick time
+                        logger.info(" Skipping early lick trial: %s", trial_name)
                         self.early_lick_trials.append(trial_name)
                         continue
 
@@ -241,8 +249,7 @@ class DewanH5:
                 self.lick2[trial_name] = lick_2_timestamps
 
         except Exception as e:
-            print("Error parsing licking and sniffing packets!")
-            raise e
+            logger.error(" Error parsing licking and sniffing packets!", exc_info=e)
 
     def _parse_trial_matrix(self):
         try:
