@@ -41,7 +41,7 @@ TRIAL_PARAMETER_COLUMNS = {
     "fvOnTime": "fv_on_time_ms",
 }
 
-logging.basicConfig(level=logging.NOTSET)
+logging.basicConfig(level=logging.ERROR)
 logger = logging.getLogger(__name__)
 
 class DewanH5:
@@ -184,7 +184,7 @@ class DewanH5:
 
                 if fv_offset_timestamps[-1] < grace_period_ms:
                     self.short_trials.append(trial_name)
-                    logger.info(" %s ends before the grace period! Skipping...", trial_name)
+                    logger.warning(" %s ends before the grace period! Skipping...", trial_name)
                     continue
 
                 if (  # noqa: SIM102
@@ -199,12 +199,13 @@ class DewanH5:
                         >= 0
                     ):
                         # Next, see if there are any time stamps between 0 and the early lick time
-                        logger.info(" Skipping early lick trial: %s", trial_name)
+                        logger.warning(" Skipping early lick trial: %s", trial_name)
                         self.early_lick_trials.append(trial_name)
                         continue
 
                 # If there is not enough pre-FV time, we need to fill in some data from the previous trial
                 if earliest_timestamp_magnitude < shortest_ITI:
+                    logger.warning(" Not enough pre-FV time in trial %s ; backfilling from previous trial...", trial_name)
                     # The amount of time we need to fill from the previous trial
                     time_to_fill = shortest_ITI - earliest_timestamp_magnitude
                     # The number of frames that hypothetically fill that time
