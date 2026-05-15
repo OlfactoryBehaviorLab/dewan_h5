@@ -14,7 +14,7 @@ import pandas as pd
 
 from datetime import datetime
 from pathlib import Path
-from typing import Union
+from typing import Union, Optional
 
 FIRST_GOOD_TRIAL = 10  # We typically ignore the first ten trials
 PRE_FV_TIME_MS = 2000
@@ -47,13 +47,13 @@ logger = logging.getLogger(__name__)
 class DewanH5:
     def __init__(
         self,
-        file_path: Union[None, Path, str],
-        trim_trials: Union[None, bool] = True,
-        drop_early_lick_trials: Union[None, bool] = True,
-        drop_cheating_trials: Union[None, bool] = True,
-        parse_only: bool = False,
-        check_missing_packets: bool = True,
-        suppress_errors: bool = False,
+        file_path: Path | str,
+        trim_trials: Optional[bool] = True,
+        drop_early_lick_trials: Optional[bool] = True,
+        drop_cheating_trials: Optional[bool] = True,
+        parse_only: Optional[bool] = False,
+        check_missing_packets: Optional[bool] = True,
+        suppress_errors: Optional[bool] = False,
     ):
         if isinstance(file_path, str):
             file_path = Path(file_path)
@@ -71,8 +71,8 @@ class DewanH5:
         self.check_missing_packets: bool = check_missing_packets
         self.drop_cheating_trials: bool = drop_cheating_trials
 
-        self._file: Union[h5py.File, None] = None
-        self.instantiated = False
+        self._file: Optional[h5py.File] = None
+        self.instantiated: bool = False
 
         # General parameters from H5 File
         self.date: str = "None Specified"
@@ -293,8 +293,15 @@ class DewanH5:
             ]  # By default, we won't trim anything
 
             if self.three_missed:  # We need to trim everything after three-missed
-                three_missed_index = self.trial_parameters.loc[three_missed_mask].index
-                last_good_trial = three_missed_index[-2]
+                # three_missed_index = self.trial_parameters.loc[three_missed_mask].index
+                # last_good_trial = three_missed_index[-2]
+
+                good_trials = np.logical_not(three_missed_mask)
+                # Marks the trials not labeled as "three missed"
+                good_trial_names = good_trials.index[good_trials][:-1]
+                # Trim the trial_names list to all of the trials not labeled as "three missed"; also drop the last
+                # trial because its the third missed "go "trial"
+                last_good_trial = good_trial_names[-1]
                 # The first 1 is the first trial after the third missed "Go" trial
                 # We also do not want the third missed "Go" trial, so we subtract two to get to the final trial
 
