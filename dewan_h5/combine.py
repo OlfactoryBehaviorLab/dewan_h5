@@ -57,8 +57,8 @@ def main():
         raise FileNotFoundError(f'File 2 [{args.file2}] does not exist')
 
     kwargs = {
-        'file1': args.file1,
-        'file2': args.file2,
+        'file1': file1_path,
+        'file2': file2_path,
     }
 
     if args.output:
@@ -66,6 +66,6 @@ def main():
         if not output_path.parent.exists():
             raise FileNotFoundError(f'Output directory {args.output} does not exist')
 
-        kwargs['new_file'] = args.output
+        kwargs['new_file'] = output_path
 
     combine(**kwargs)
