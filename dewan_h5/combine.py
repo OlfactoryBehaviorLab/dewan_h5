@@ -65,13 +65,15 @@ def combine(*files: Path, new_file: Path | None = None):
 
 
 def main():
-    parser = argparse.ArgumentParser(description='Combine two HDF5 files')
+    parser = argparse.ArgumentParser(description='Combine two or more HDF5 files')
     parser.add_argument('files', nargs="+", action="extend", help='HDF Files')
-    parser.add_argument('-o', '--output', default=None, help='New HDF5 file')
+    parser.add_argument('-o', '--output', nargs=1, default=None, help='New HDF5 file')
 
     args = parser.parse_args()
 
     file_paths = [Path(file) for file in args.files]
+    if len(file_paths) < 2:
+        raise ValueError('Must provide at least two HDF5 files to combine!')
 
     for file in file_paths:
         if not file.exists():
