@@ -297,15 +297,13 @@ class DewanH5:
             # See if three-missed was triggered
             three_missed_mask = self.trial_parameters["three_missed"] == 1
 
-            if three_missed_mask.sum() > 0:
-                self.three_missed = True
 
             first_good_trial = self.trial_parameters.index[FIRST_GOOD_TRIAL]
-            last_good_trial = self.trial_parameters.index[
-                -1
-            ]  # By default, we won't trim anything
+            last_good_trial = self.trial_parameters.index[-1] # By default, we won't trim anything
 
-            if self.three_missed:  # We need to trim everything after three-missed
+            if three_missed_mask.sum() > 0:  # We need to trim everything after three-missed
+                self.three_missed = True
+
                 # three_missed_index = self.trial_parameters.loc[three_missed_mask].index
                 # last_good_trial = three_missed_index[-2]
 
@@ -406,9 +404,9 @@ class DewanH5:
         total_trials = total_gos + total_nogos
         correct_trials = correct_go_trials + correct_nogo_trials
 
-        self.nogo_performance = round((correct_nogo_trials / total_nogos) * 100, 2)
-        self.go_performance = round((correct_go_trials / total_gos) * 100, 2)
-        self.total_performance = round((correct_trials / total_trials) * 100, 2)
+        self.nogo_performance = round((correct_nogo_trials / total_nogos) * 100, 2) if total_nogos > 0 else 0
+        self.go_performance = round((correct_go_trials / total_gos) * 100, 2) if total_gos > 0 else 0
+        self.total_performance = round((correct_trials / total_trials) * 100, 2) if total_trials > 0 else 0
 
     def _get_cheating_trials(self):
         cheat_trial_mask = (self.trial_parameters["odor"] == "blank") & (
